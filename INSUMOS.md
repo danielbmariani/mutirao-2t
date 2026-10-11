@@ -13,6 +13,7 @@ contém está na Release ou em fonte pública com URL.
 | `biometria_municipio.parquet` | cobertura biométrica municipal 2022/2026 e variação (insumo do modelo de abstenção) |
 | `relacao_malha2022_2026_t1_lv.parquet` | a relação local de votação → setor censitário com distâncias (peça-chave: com ela os modelos são retreináveis só com dados públicos do TSE) |
 | `distritos_eleicao.parquet` | nomes e agregados eleitorais por distrito censitário (nomes das regiões) |
+| `setores_completo.{parquet,csv.gz}` | UMA linha por setor: real/esperado/déficit das duas visões + região de interesse |
 
 ## Na Release v1.0 deste repositório
 

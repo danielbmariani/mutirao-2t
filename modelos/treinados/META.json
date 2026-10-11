@@ -1,0 +1,8 @@
+{
+ "gerado": "2026-10-11",
+ "sklearn": "1.9.1",
+ "python": "3.11.15",
+ "nota": "Modelos full-fit em todos os setores. Os números do site vêm de predições out-of-fold (ver metricas/); use estes objetos para aplicar a dados novos. A predição da abstenção é a média do ensemble.",
+ "alvo_voto": "pct de Lula no 1t/2026 sobre válidos de presidente",
+ "alvo_abstencao": "pct de abstenção no 1t/2026 sobre aptos"
+}

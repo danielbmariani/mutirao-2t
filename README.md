@@ -110,6 +110,20 @@ déficit recuperável de cada bloco não excede o eleitorado não-Lula; na
 abstenção, não excede a abstenção total × fatia de Lula, e só entram
 blocos onde Lula lidera.
 
+## Usar os dados e os modelos direto (Python e R)
+
+`dados_modelo/setores_completo.{parquet,csv.gz}` tem UMA linha por
+setor censitário (468 mil) com: real, esperado e déficit das duas
+visões, válidos/aptos e, quando o setor pertence a uma região de
+interesse do corte padrão, o número dela (`regiao_voto`,
+`regiao_abstencao`). Os modelos treinados estão em
+`modelos/treinados/*.joblib` (scikit-learn; versão em `META.json`; a
+predição da abstenção é a média do ensemble de 4). Exemplos prontos de
+carga em `exemplos/carregar.py` e `exemplos/carregar.R` (R via
+reticulate). Atenção: os números publicados vêm das predições fora da
+amostra; os joblib são o ajuste final em todos os dados, para aplicar a
+dados novos e inspecionar.
+
 ## Reproduzir do zero
 
 O mapa completo de insumos (o que está neste repositório, o que está na
