@@ -1,0 +1,153 @@
+# Mutirão do 2º turno: onde Lula ficou abaixo do esperado
+
+Mapa interativo com as regiões do Brasil onde Lula ficou abaixo do
+esperado no 1º turno de 2026, por dois caminhos: migração de voto e
+abstenção acima da esperada. Feito para orientar o esforço de campanha
+entre os turnos (o 2º turno é em 25/10/2026).
+
+Versão de referência no ar: https://mutirao-2t.vercel.app
+
+Este repositório existe para que qualquer grupo (em particular o
+pessoal do Colmeia) possa hospedar a própria cópia e para que qualquer
+pessoa possa entender e reproduzir os modelos.
+
+## O que o site mostra
+
+Duas visões, com a mesma mecânica:
+
+1. **Votos que faltaram**: um modelo prevê o voto esperado de Lula em
+   cada um dos 468 mil setores censitários a partir da eleição de 2022
+   (1º e 2º turnos, abstenção e brancos), de 2018 e do perfil do Censo
+   2022 (renda, idade, alfabetização, cor, religião, ensino superior,
+   urbanização, porte). O déficit é o esperado menos o real. Bolsa
+   nacional: cerca de 745 mil votos, já limitada pelo teto aritmético
+   de cada lugar.
+2. **Abstenção excedente**: um modelo irmão prevê a abstenção esperada
+   de cada setor a partir do histórico de 2018 e 2022, do perfil
+   demográfico e da cobertura do recadastramento biométrico do
+   município (cadastro limpo derruba a abstenção estrutural; sem essa
+   variável, eleitor fantasma viraria falso sinal). Votos perdidos =
+   excesso de abstenção × aptos × fatia de Lula. As regiões desta visão
+   só aceitam áreas onde Lula lidera, porque reverter abstenção devolve
+   votos de todos os lados; a ficha mostra também o ganho líquido.
+
+As regiões são grupos contíguos de subdistritos censitários acima de um
+limiar de sinal e de volume, divididas em escala de agenda (até ~60 km),
+ranqueadas por votos absolutos, com três cortes pré-computados (menos,
+padrão, mais). Navegação por Brasil, estado e município, busca de
+endereço que encontra a região mais próxima, e perfil socioeconômico de
+cada região.
+
+## Hospedar a sua versão
+
+O site é 100% estático. Três passos:
+
+1. **Conta Mapbox própria** (o mapa usa tiles vetoriais do Mapbox):
+   crie um token público (pk) restrito ao seu domínio, e um token
+   secreto (sk) com escopo de uploads.
+2. **Tileset**: baixe o arquivo `mapa_lula_v3.mbtiles` da
+   [Release deste repositório](../../releases) e suba para a sua conta:
+   `python tiles/upload_mapbox_35.py mapa_lula_v3.mbtiles SEU_TILESET
+   "Nome"` (o script lê o sk de um arquivo; ajuste o caminho no topo).
+   Alternativa: Mapbox Studio aceita o upload manual do mbtiles.
+3. **Site**: em `site/index.html`, troque as constantes `TOKEN` (seu
+   pk) e `TILESET_ID` (`seu_usuario.seu_tileset`). Publique a pasta
+   `site/` em qualquer hospedagem estática (Vercel, Netlify, GitHub
+   Pages). O `vercel.json` incluso configura cache e CORS dos dados.
+
+A auditoria de interface (`site/bateria_eleitores.cjs`, Puppeteer) roda
+30 verificações contra qualquer URL: `node bateria_eleitores.cjs
+https://sua-url/`.
+
+## Estrutura
+
+```
+site/            o site pronto (index.html + dados pré-computados)
+  dados/         regioes*.json/geojson (2 visões × 3 cortes),
+                 municipios.json (busca), regioes*.geojson (contornos)
+modelos/         modelo_lula_72.py (voto), modelo_abst_75.py (abstenção)
+regioes/         geradores de regiões das duas visões
+tiles/           gerador do tileset + uploader Mapbox
+dados_modelo/    SAÍDAS dos modelos por setor censitário (parquet):
+                 permitem regenerar regiões e tiles sem o pipeline TSE
+metricas/        bateria de validação dos modelos (JSON)
+pesquisa/        revisão de literatura (inferência ecológica,
+                 transferência de votos, GOTV)
+```
+
+## Os modelos, em detalhe técnico
+
+Ambos são `HistGradientBoostingRegressor` (scikit-learn) por setor
+censitário, ponderados pelos votos válidos (ou aptos) do setor, com
+predição **out-of-fold** em validação cruzada de 5 blocos agrupada por
+município: o modelo nunca viu o município ao prever nele, senão
+decoraria a política local e o resíduo (que é o produto) morreria.
+Coordenadas ficam fora das variáveis: diferenças regionais de
+comportamento permanecem no resíduo de propósito. Nada de 2026 entra
+como variável além do alvo (na visão de abstenção, nem abstenção nem
+brancos de 2026, que são exatamente o que um mutirão recupera).
+
+Bateria de validação (os números completos estão em `metricas/`):
+
+| | Voto | Abstenção |
+|---|---|---|
+| R² fora da amostra (setor) | 0,967 | 0,33 |
+| R² fora da amostra (distrito, nível de decisão) | — | 0,686 |
+| Erro médio (pp) | 2,07 | 2,23 |
+| Viés global (pp) | −0,12 | +0,01 |
+| Baseline Ridge (mesmo esquema) | 0,958 | 0,07 |
+| Redução do erro vs baseline | 20% | 27% |
+| Estabilidade entre seeds (Spearman do ranking) | 0,978 | 0,968 |
+
+A abstenção é estruturalmente mais ruidosa que o voto (chuva, filas,
+eventos locais); por isso a predição dela é um ensemble de 4 seeds e o
+gate de estabilidade é medido no ranking agregado por distrito, o nível
+em que o site decide. O viés por UF é reportado nos JSONs e tratado
+como achado, não como erro: política estadual deve ficar no resíduo.
+
+Salvaguardas aritméticas (método dos limites de Duncan e Davis): o
+déficit recuperável de cada bloco não excede o eleitorado não-Lula; na
+abstenção, não excede a abstenção total × fatia de Lula, e só entram
+blocos onde Lula lidera.
+
+## Reproduzir do zero
+
+Com os parquets de `dados_modelo/` você regenera regiões e tileset sem
+tocar nos dados brutos:
+
+```bash
+python -m venv .venv && .venv/bin/pip install duckdb pandas numpy \
+    scikit-learn scipy geopandas shapely pyarrow requests boto3
+# ajuste os caminhos no topo dos scripts (eles vêm de um pipeline maior)
+.venv/bin/python regioes/regioes_lula_73.py            # padrão
+.venv/bin/python regioes/regioes_lula_73.py 1.5 2000 _menos
+.venv/bin/python regioes/regioes_lula_73.py 0.6 500 _mais
+.venv/bin/python regioes/regioes_abst_76.py 1.5 1000   # etc.
+.venv/bin/python tiles/tiles_lula_74.py                # exige tippecanoe
+```
+
+Para refazer os MODELOS a partir dos dados brutos é preciso o pipeline
+completo de agregação eleitoral por setor censitário: resultados por
+seção do TSE agregados por local de votação e distribuídos aos setores
+vizinhos com peso inverso à distância (metodologia do
+[deltafolha](https://github.com/deltafolha/eleicoes-por-setores-censitarios),
+inspirada no Pindograma), mais a malha e os agregados do Censo 2022 do
+IBGE e o detalhe de votação por seção (aptos e abstenções). Os insumos
+intermediários necessários estão descritos no topo de cada script. Os
+dados de origem são todos públicos (TSE Dados Abertos e IBGE/FTP).
+
+## Limitações que a sua versão deve manter visíveis
+
+O déficit é medida de território, não contagem de pessoas; a passagem
+seção → setor é estimativa por proximidade; parte do déficit de voto se
+recupera por mobilização e parte por convencimento, e o modelo não
+separa os canais; o R² baixo por setor na abstenção é esperado, decisões
+devem ficar no nível de região. A validação real está agendada: depois
+de 25/10, comparar o crescimento de Lula t1→t2 com o déficit previsto
+aqui, por setor (desenho na pesquisa inclusa).
+
+## Créditos
+
+Daniel Mariani (modelos, dados e site). Metodologia de setores
+censitários: deltafolha e Pindograma. Dados: TSE e IBGE. Código sob
+licença MIT; dados derivados são públicos.

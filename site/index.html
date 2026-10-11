@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mutirão do 2º turno: onde Lula ficou abaixo do esperado</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="As regiões do Brasil onde Lula ficou abaixo do esperado no 1º turno de 2026, segundo um modelo que considera a eleição de 2022 e o perfil de cada lugar. Top 50 do país, por estado e por município, e a região mais próxima do seu endereço.">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<script id="search-js" defer src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+<style>
+  :root { --acento: #8F1D21; --link: #27568B;
+          --glass: rgba(255,255,255,0.88); --txt: #121212; --sub: #666; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+                 sans-serif; color: var(--txt); }
+  #mapa { position: absolute; inset: 0; height: 100vh; height: 100dvh; }
+  .glass { background: var(--glass);
+           -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+           border-radius: 12px; box-shadow: 0 2px 14px rgba(0,0,0,0.18);
+           border: 1px solid rgba(255,255,255,0.6); }
+  .ov-top { position: absolute; z-index: 20; top: 12px; left: 12px;
+            width: min(360px, calc(100vw - 86px)); padding: 12px 14px; }
+  .ov-top h1 { font-size: 15.5px; font-weight: 700; margin: 0 0 2px;
+               letter-spacing: -0.01em; line-height: 1.25; }
+  .ov-top .unidade { font-size: 11px; color: var(--sub); margin: 0 0 9px;
+                     line-height: 1.35; }
+  #sel-cand { width: 100%; font-size: 13.5px; padding: 7px 9px;
+              border: 1px solid #d5d5d5; border-radius: 8px;
+              background: rgba(255,255,255,0.95); margin-bottom: 8px;
+              color: var(--txt); }
+  #cand-resumo { font-size: 11.5px; color: #444; line-height: 1.45;
+                 margin: 0 0 9px; }
+  #cand-resumo b { font-variant-numeric: tabular-nums; }
+  #busca-box { margin-bottom: 8px; }
+  #busca-box input, mapbox-search-box { width: 100%; font-size: 13.5px; }
+  #busca-cand-box { position: relative; margin-bottom: 8px; }
+  #busca-cand { width: 100%; font-size: 14px; padding: 9px 11px;
+    border: 1.5px solid #c9c9c9; border-radius: 8px;
+    background: rgba(255,255,255,0.97); color: var(--txt);
+    font-family: inherit; }
+  #busca-cand:focus { outline: none; border-color: #121212; }
+  #busca-cand-box input { padding-right: 38px; }
+  #abre-lista { position: absolute; right: 4px; top: 4px; bottom: 4px;
+    width: 30px; border: 0; border-radius: 6px; background: #efefef;
+    color: #333; font-size: 13px; cursor: pointer;
+    font-family: inherit; }
+  #abre-lista:active { background: #ddd; }
+  #cand-sugestoes { position: absolute; top: calc(100% + 4px); left: 0;
+    right: 0; z-index: 40; background: #fff; border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22); display: none;
+    max-height: min(55vh, 460px); overflow-y: auto;
+    overscroll-behavior: contain; }
+  #cand-sugestoes.aberto { display: block; }
+  .sug { display: block; width: 100%; text-align: left; border: 0;
+    background: none; padding: 9px 12px; cursor: pointer;
+    font-family: inherit; border-bottom: 1px solid #f2f2f2; }
+  .sug:hover, .sug.foco { background: #f4f1ea; }
+  .sug .sug-nome { font-size: 13px; font-weight: 600; color: #222; }
+  .sug .sug-meta { font-size: 11px; color: #777; margin-top: 1px; }
+  .pr-aviso { border: 1px solid #e4ddcc; background: #faf7f0;
+    border-radius: 10px; padding: 14px; margin: 6px 8px 6px 0;
+    font-size: 12.5px; line-height: 1.55; color: #444; }
+  .pr-aviso b { display: block; font-size: 13px; color: var(--txt);
+    margin-bottom: 4px; }
+  #legenda { display: flex; gap: 10px 14px; align-items: center;
+             flex-wrap: wrap; font-size: 11px; color: #444; }
+  .ramp { display: flex; align-items: center; gap: 5px; }
+  .ramp .bar { width: 64px; height: 8px; border-radius: 2px;
+               position: relative; }
+  .ramp .tick { position: absolute; top: -2px; bottom: -2px; width: 2px;
+                background: #333; border-radius: 1px; }
+  .legenda-nota { width: 100%; font-size: 10.5px; color: #777;
+                  line-height: 1.4; }
+  /* painel de regiões prioritárias: coluna esquerda, rolável */
+  #painel-regioes { position: absolute; z-index: 19; left: 12px;
+    width: min(360px, calc(100vw - 86px)); padding: 10px 6px 10px 14px;
+    display: flex; flex-direction: column; }
+  #painel-regioes .pr-cab { font-size: 10.5px; font-weight: 700;
+    letter-spacing: .05em; color: #888; text-transform: uppercase;
+    margin-bottom: 2px; padding-right: 8px; display: flex;
+    justify-content: space-between; align-items: baseline; }
+  #painel-regioes .pr-cab small { font-weight: 400; text-transform: none;
+    letter-spacing: 0; color: #999; }
+  /* esfera geográfica: botões explícitos (pedido 11/10 — a busca
+     sozinha escondia a descoberta); o rótulo vira o escopo ativo */
+  .pr-abas { display: flex; gap: 2px; margin: 5px 8px 7px 0; }
+  .pr-abas button { flex: 1; border: 0; background: #efefef;
+    padding: 7px 0; font-size: 12px; font-weight: 600; color: #555;
+    cursor: pointer; border-radius: 7px; font-family: inherit;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pr-abas button.ativo { background: #121212; color: #fff; }
+  .pr-corte { display: flex; align-items: center; gap: 4px;
+    margin: 0 8px 6px 0; font-size: 10.5px; color: #888; }
+  .pr-corte span { margin-right: 2px; }
+  .pr-corte button { border: 1px solid #ddd; background: #fff;
+    padding: 3px 9px; font-size: 11px; font-weight: 600; color: #555;
+    cursor: pointer; border-radius: 999px; font-family: inherit; }
+  .pr-corte button.ativo { background: #121212; color: #fff;
+    border-color: #121212; }
+  .pr-mais { display: block; width: calc(100% - 8px); border: 0;
+    background: #efefef; padding: 8px 0; margin: 8px 8px 2px 0;
+    font-size: 12px; font-weight: 700; color: #333; cursor: pointer;
+    border-radius: 8px; font-family: inherit; }
+  #escopo-busca-box { position: relative; margin: 7px 8px 7px 0; }
+  #escopo-busca { width: 100%; font-size: 13px; padding: 7px 10px;
+    border: 1px solid #d5d5d5; border-radius: 8px; font-family: inherit;
+    background: rgba(255,255,255,0.97); }
+  #escopo-busca:focus { outline: none; border-color: #121212; }
+  #escopo-sug { position: absolute; top: calc(100% + 4px); left: 0;
+    right: 0; z-index: 45; background: #fff; border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22); display: none;
+    max-height: 300px; overflow-y: auto; }
+  #escopo-sug.aberto { display: block; }
+  .pr-handle { display: none; }
+  #pr-lista { overflow-y: auto; min-height: 0; padding-right: 8px;
+              scrollbar-width: thin; }
+  .reg { display: flex; gap: 9px; width: 100%; text-align: left; border: 0;
+         background: none; padding: 7px 4px; cursor: pointer;
+         border-bottom: 1px solid #ececec; font-family: inherit;
+         border-radius: 6px; align-items: flex-start; }
+  .reg:hover { background: #f6f3ee; }
+  .reg.ativo { background: #efeae2; }
+  .reg .chip { margin-top: 1px; }
+  .chip { display: inline-flex; align-items: center;
+    justify-content: center; width: 20px; height: 20px; flex: none;
+    border-radius: 50%; background: #fff; border: 1.5px solid #121212;
+    color: #121212; font-size: 11px; font-weight: 700; }
+  .reg-corpo { flex: 1; min-width: 0; }
+  .reg-nome { font-size: 12.5px; font-weight: 600; color: #222;
+              line-height: 1.3; }
+  .reg-meta { font-size: 11px; color: #666; margin-top: 1px;
+              font-variant-numeric: tabular-nums; }
+  .reg-perfil { font-size: 11px; color: #999; margin-top: 1px;
+                line-height: 1.4; display: none; }
+  .reg.ativo .reg-perfil { display: block; color: #777; }
+  .pr-nota { font-size: 10.5px; color: #999; padding: 8px 8px 0 4px;
+             line-height: 1.45; }
+  #btn-regioes { display: none; }
+  /* card de clique no mapa */
+  #resultado { position: absolute; z-index: 21; top: 0; left: 0;
+    width: min(340px, calc(100vw - 86px));
+    padding: 12px 14px; font-size: 13px; line-height: 1.5;
+    display: none; max-height: 52vh; overflow-y: auto; }
+  #resultado small { color: var(--sub); display: block; margin-top: 4px; }
+  #resultado .fechar { position: absolute; top: 9px; right: 9px;
+    width: 26px; height: 26px; border: 0; border-radius: 50%;
+    background: #efefef; color: #222; font-size: 12px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; }
+  #resultado > div { margin-right: 30px; }
+  .card-titulo { font-weight: 700; font-size: 13.5px; color: var(--txt); }
+  .card-sub { font-size: 11px; color: #8a8a8a; margin: 1px 0 7px; }
+  .card-barra { display: flex; height: 8px; border-radius: 4px;
+                overflow: hidden; margin: 2px 0 8px; background: #eee; }
+  .card-barra span { height: 100%; }
+  .card-linha { display: flex; align-items: center; gap: 7px;
+                font-size: 12.5px; padding: 2.5px 0;
+                font-variant-numeric: tabular-nums; }
+  .card-linha .sw { width: 9px; height: 9px; border-radius: 2px;
+                    flex: none; }
+  .card-linha .nome { flex: 1; color: #444; }
+  .card-linha .val { font-weight: 600; color: #333; min-width: 52px;
+                     text-align: right; }
+  .card-renda { border-top: 1px solid #ececec; margin-top: 7px;
+                padding-top: 7px; font-size: 12px; color: #555;
+                display: flex; justify-content: space-between; gap: 10px;
+                font-variant-numeric: tabular-nums; }
+  /* barra de visões */
+  .ov-views { position: absolute; z-index: 20; bottom: 18px; left: 50%;
+              transform: translateX(-50%); max-width: calc(100vw - 16px); }
+  .seg { display: flex; padding: 4px; gap: 2px; overflow-x: auto;
+         scrollbar-width: none; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg button { border: 0; background: transparent; padding: 8px 14px;
+                font-size: 13px; font-weight: 600; cursor: pointer;
+                color: #333; border-radius: 9px; white-space: nowrap;
+                font-family: inherit; }
+  .seg button.ativo { background: #121212; color: #fff; }
+  .ov-cred { position: absolute; z-index: 20; bottom: 18px; right: 12px;
+             padding: 7px 11px; font-size: 11.5px; color: #444;
+             display: flex; gap: 10px; align-items: center; }
+  .ov-cred b { color: var(--txt); }
+  .ov-cred button, .ov-cred a { border: 0; background: none; padding: 0;
+    cursor: pointer; font-size: 11.5px; font-weight: 700;
+    color: var(--acento); text-decoration: none; font-family: inherit; }
+  .ov-cred a:hover, .ov-cred button:hover { text-decoration: underline; }
+  #modal-met { position: fixed; inset: 0; z-index: 50;
+               background: rgba(0,0,0,0.35); display: none;
+               align-items: center; justify-content: center; }
+  #modal-met.aberto { display: flex; }
+  .modal-card { background: #fff; border-radius: 14px; max-width: 72ch;
+    width: calc(100vw - 32px); max-height: 82vh; overflow-y: auto;
+    padding: 22px 26px; font-size: 13.5px; line-height: 1.65; color: #333;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+  .modal-card h2 { font-size: 17px; margin: 0 0 10px; color: var(--txt); }
+  .modal-card h3 { font-size: 14px; margin: 16px 0 6px; }
+  .modal-card p { margin: 9px 0; }
+  .modal-card a { color: var(--link); }
+  .modal-card .fechar-met { float: right; border: 0; background: #f2f2f2;
+    border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
+    font-size: 14px; color: #555; }
+  .card-sec { font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+              color: #888; text-transform: uppercase;
+              margin: 12px 0 4px; padding-top: 10px;
+              border-top: 1px solid #ececec; }
+  .card-sec-1 { border-top: 0; padding-top: 0; margin-top: 0; }
+  .card-conv { font-size: 13px; font-weight: 600; color: var(--txt);
+               margin: 8px 0 2px; }
+  .card-kv { display: flex; justify-content: space-between; gap: 12px;
+             font-size: 12px; color: #555; padding: 2.5px 0;
+             font-variant-numeric: tabular-nums; }
+  .card-kv b { color: #333; font-weight: 600; text-align: right; }
+  @media (max-width: 600px) {
+    .ov-top { left: 8px; top: 8px; width: calc(100vw - 72px);
+              padding: 9px 11px; }
+    .ov-top h1 { font-size: 13.5px; }
+    .ov-top .unidade { display: none; }
+    #cand-resumo { font-size: 11px; }
+    #legenda { gap: 5px 10px; font-size: 10.5px; }
+    .ramp .bar { width: 40px; }
+    .legenda-nota { display: none; }
+    .ov-views { bottom: 10px; width: calc(100vw - 16px); }
+    .ov-cred { bottom: calc(var(--h-barra, 60px) + 10px); right: 8px;
+               padding: 6px 9px; }
+    .ov-cred .fonte-l { display: none; }
+    #btn-regioes { display: block; width: 100%; border: 0;
+      background: #121212; color: #fff; font-weight: 700;
+      font-size: 12.5px; padding: 8px 0; border-radius: 8px;
+      margin-top: 2px; cursor: pointer; font-family: inherit; }
+    /* sheet com TRÊS alturas (pico/metade/cheia, padrão Google Maps):
+       o mapa continua visível na altura intermediária — a lista não
+       ocupa mais a tela toda */
+    #painel-regioes { display: none; position: fixed;
+      inset: auto 0 0 0; width: 100vw; left: 0;
+      border-radius: 14px 14px 0 0; z-index: 30;
+      padding: 4px 6px 12px 14px; top: auto;
+      transition: height .22s ease; overflow: hidden; }
+    #painel-regioes.aberto { display: flex; }
+    #painel-regioes.peek { height: 92px; }
+    #painel-regioes.meia { height: 44vh; }
+    #painel-regioes.cheia { height: 86vh; }
+    .pr-handle { display: block; width: 100%; padding: 6px 0 8px;
+      cursor: grab; flex: none; }
+    .pr-handle::before { content: ""; display: block; width: 38px;
+      height: 4.5px; border-radius: 3px; background: #cfcfcf;
+      margin: 0 auto; }
+    #resultado { position: fixed; inset: auto 0 0 0; width: 100vw;
+      max-height: 50vh; border-radius: 14px 14px 0 0; z-index: 31;
+      transform: none !important; }
+  }
+</style>
+<script defer src="/_vercel/insights/script.js"></script>
+<script>
+// contador próprio (1º partido, não pego por adblock); falha em silêncio
+addEventListener('DOMContentLoaded', function () {
+  try {
+    var d = JSON.stringify({ r: 'mutirao:' + location.pathname + '|' +
+                                document.referrer });
+    (navigator.sendBeacon && navigator.sendBeacon('https://mapa-contador.vercel.app/api/p', d)) ||
+      fetch('https://mapa-contador.vercel.app/api/p', { method: 'POST', body: d, keepalive: true });
+  } catch (e) {}
+});
+</script>
+</head>
+<body>
+<div id="mapa"></div>
+
+<div class="ov-top glass">
+  <h1 id="titulo">Onde o mutirão do 2º turno rende mais</h1>
+  <p class="unidade" id="unidade-txt">Regiões onde Lula ficou abaixo
+    do esperado no 1º turno de 2026, segundo modelo que considera a
+    eleição de 2022 e o perfil de cada lugar.</p>
+  <div class="pr-abas" id="visao-abas" style="margin:0 0 8px">
+    <button id="visao-voto" class="ativo">Votos que faltaram</button>
+    <button id="visao-abst">Abstenção excedente</button>
+  </div>
+  <div id="busca-box"><mapbox-search-box id="q" placeholder="Seu endereço: achamos a região mais próxima"></mapbox-search-box></div>
+  <p id="cand-resumo"></p>
+  <p id="perto" style="display:none;font-size:11.5px;color:#444;
+     margin:0 0 8px"></p>
+  <div id="legenda"></div>
+  <button id="btn-regioes">Ver lista de regiões</button>
+</div>
+
+<div id="painel-regioes" class="glass">
+  <div class="pr-handle" id="pr-handle" aria-label="Arraste para
+       redimensionar a lista"></div>
+  <div class="pr-cab"><span>Regiões prioritárias</span>
+    <small id="pr-cobertura"></small></div>
+  <div class="pr-abas" id="escopo-abas">
+    <button id="esc-br" class="ativo">Brasil</button>
+    <button id="esc-uf">Estado ▾</button>
+    <button id="esc-mu">Município ▾</button>
+  </div>
+  <div class="pr-corte"><span>Corte do modelo</span>
+    <button id="corte-menos">Menos</button>
+    <button id="corte-padrao" class="ativo">Padrão</button>
+    <button id="corte-mais">Mais regiões</button>
+  </div>
+  <div id="escopo-busca-box">
+    <input id="escopo-busca" type="search" autocomplete="off"
+           style="display:none"
+           placeholder="Digite o município…"
+           aria-label="Digite o município">
+    <div id="escopo-sug"></div>
+  </div>
+  <div id="pr-lista"></div>
+  <div class="pr-nota" id="pr-nota"></div>
+</div>
+
+<div id="resultado" class="glass"></div>
+
+<div class="ov-cred glass">
+  <span class="fonte-l">Por <b>Daniel Mariani</b></span>
+  <button id="btn-met">Metodologia</button>
+  <a href="https://mapa-eleicoes.danielmariani.com.br" target="_blank"
+     rel="noopener">Mapa da eleição ↗</a>
+</div>
+
+<div id="modal-met">
+  <div class="modal-card">
+    <button class="fechar-met" id="fecha-met">✕</button>
+    <h2>Metodologia</h2>
+    <p>Este mapa mostra onde Lula ficou abaixo do esperado no 1º turno
+    de 2026: as regiões onde um mutirão de 2º turno tem mais votos a
+    recuperar, em número absoluto.</p>
+    <h3>O modelo</h3>
+    <p>Um modelo estatístico (gradient boosting) aprende, nos 468 mil
+    setores censitários do país, o voto esperado de Lula em 2026 a
+    partir de 24 variáveis: o voto de 2022 (1º e 2º turnos, inclusive
+    abstenção e brancos), o de 2018, e o perfil do Censo 2022: renda,
+    idade, alfabetização, cor, religião, ensino superior, urbanização e
+    porte. O déficit é a diferença entre o esperado e o voto real.
+    Positivo = faltaram votos a Lula em relação ao padrão de lugares
+    parecidos com aquele.</p>
+    <p>Rigor: a predição de cada setor vem de um modelo que nunca viu o
+    município dele (validação cruzada em cinco blocos por município);
+    ajuste fora da amostra R² = 0,97, erro médio ≈ 2 pontos; viés global
+    −0,1 ponto; resultados estáveis entre execuções (correlação 0,999);
+    o modelo supera um baseline linear reduzindo em 20% o erro restante.
+    Abstenção e brancos de 2026 ficam fora das variáveis de propósito:
+    são exatamente o que um mutirão recupera. No agregado, o país tem
+    ≈ 745 mil votos de déficit recuperável, descontado o teto
+    aritmético de cada lugar (não dá para recuperar mais votos do que
+    existem eleitores fora do Lula).</p>
+    <h3>A visão de abstenção</h3>
+    <p>A segunda visão pergunta quantos votos Lula perdeu para a
+    abstenção ACIMA da esperada. Um modelo irmão prevê a abstenção de
+    cada setor a partir do histórico de 2018 e 2022 e do perfil
+    demográfico (idade e alfabetização carregam as isenções do voto
+    obrigatório), sem variáveis políticas, porque a desmobilização é
+    exatamente o sinal procurado. Votos perdidos = excesso de abstenção
+    × eleitores aptos × fatia de Lula no lugar. Como reverter abstenção
+    devolve votos de todos os lados, as regiões desta visão só aceitam
+    áreas onde Lula lidera, e a ficha mostra também o ganho líquido,
+    descontado o voto do adversário que voltaria junto. A abstenção é
+    mais idiossincrática que o voto: o ajuste por setor é baixo
+    (R² 0,29), mas no nível dos blocos usados pelas regiões sobe a
+    0,62, e o ranking é estável entre execuções (0,976).</p>
+    <h3>As regiões</h3>
+    <p>Blocos são subdistritos censitários (11,3 mil no país); viram
+    região os grupos contíguos onde Lula ficou ao menos 1 ponto abaixo
+    do esperado e que somam ao menos mil votos de déficit; áreas
+    alongadas (mais de 60 km) são divididas em torno de cidades-polo.
+    O ranking é pelo volume absoluto de votos. Estados e municípios sem
+    nenhuma região são avisados como tal: o modelo não encontrou
+    subdesempenho concentrado neles.</p>
+    <h3>Fontes e limites</h3>
+    <p>TSE (votação por seção de 2018, 2022 e 2026, cadastro de locais
+    de votação); IBGE (malha e agregados do Censo 2022, áreas de
+    ponderação). A passagem de local de votação para setor usa pesos por
+    distância (metodologia do
+    <a href="https://mapa-eleicoes.danielmariani.com.br" target="_blank"
+    rel="noopener">mapa da eleição</a>). O déficit é uma medida
+    agregada de território, não uma contagem de pessoas; parte dele se
+    recupera por mobilização (abstenção), parte por convencimento.
+    Dados abertos em
+    <a href="https://dados-eleicoes.danielmariani.com.br" target="_blank"
+    rel="noopener">dados-eleicoes.danielmariani.com.br</a>.</p>
+  </div>
+</div>
+
+<script>
+const TOKEN = "COLOQUE_AQUI_SEU_TOKEN_PUBLICO_MAPBOX";
+const TILESET_ID = "danielbmariani.lula_deficit_2026_v3";
+mapboxgl.accessToken = TOKEN;
+
+const fmt = x => (x == null ? "s/d" :
+  (+x).toLocaleString("pt-BR", { maximumFractionDigits: 1 }));
+const fmtMil = x => {
+  if (x == null) return "s/d";
+  if (x >= 950000) return (x / 1e6).toLocaleString("pt-BR",
+    { maximumFractionDigits: 1 }) + " mi";
+  if (x >= 1000) return Math.round(x / 1000).toLocaleString("pt-BR") +
+    " mil";
+  return Math.round(x).toLocaleString("pt-BR");
+};
+const semAcento = t => (t || "").normalize("NFD")
+  .replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// ---------- estado + hash (#r=12&p=lon,lat,z) ----------
+let REG = null, GEO = null, regiaoAtiva = null;
+let corte = "padrao";          // menos | padrao | mais
+let visao = "voto";            // voto | abst
+let listaExpandida = false;    // "mostrar todas" do escopo atual
+const cacheCorte = {};
+const ARQ_CORTE = { menos: "_menos", padrao: "", mais: "_mais" };
+const PREF_VISAO = { voto: "regioes", abst: "regioes_abst" };
+let aba = "br", ufSel = "", munSel = null;
+
+function leHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  const out = {};
+  if (["menos", "mais"].includes(h.get("s"))) out.s = h.get("s");
+  if (h.get("v") === "abst") out.v = "abst";
+  if (h.get("r") && isFinite(+h.get("r"))) out.r = +h.get("r");
+  const p = (h.get("p") || "").split(",");
+  if (p.length === 3 && p.every(x => isFinite(+x)))
+    out.cam = { center: [+p[0], +p[1]], zoom: +p[2] };
+  return out;
+}
+const hash0 = leHash();
+if (hash0.s) corte = hash0.s;
+if (hash0.v) visao = hash0.v;
+let hashTimer = null;
+function gravaHash() {
+  clearTimeout(hashTimer);
+  hashTimer = setTimeout(() => {
+    const c = mapa.getCenter();
+    history.replaceState(null, "",
+      (regiaoAtiva ? `#r=${regiaoAtiva}&` : "#") +
+      (corte !== "padrao" ? `s=${corte}&` : "") +
+      (visao !== "voto" ? `v=${visao}&` : "") +
+      `p=${c.lng.toFixed(4)},${c.lat.toFixed(4)},` +
+      mapa.getZoom().toFixed(2));
+  }, 400);
+}
+
+const mapa = new mapboxgl.Map({
+  container: "mapa",
+  style: "mapbox://styles/mapbox/light-v11",
+  center: hash0.cam ? hash0.cam.center : [-51.5, -14.5],
+  zoom: hash0.cam ? hash0.cam.zoom : 3.6, maxZoom: 16,
+  language: "pt", attributionControl: true
+});
+mapa.addControl(new mapboxgl.NavigationControl({ showCompass: false }),
+                "top-right");
+mapa.on("moveend", gravaHash);
+
+// ---------- escala: déficit nacional (atributo d, pp x10) ----------
+const CORES_TAXA = ["#f4f2ea", "#c5d8d6", "#88b1b2",
+                    "#4b8188", "#1d4f57"];
+const sobe = st => st.map((v, i) => v + i * 1e-3);
+const attrVisao = () => visao === "voto" ? "d" : "a";
+const escalaDeficit = () => {
+  const st = sobe((REG && REG.meta.stops_def) || [-4, -1, 0, 1, 4]);
+  return ["case",
+    ["!", ["has", attrVisao()]], "#d9d9d9",
+    ["interpolate", ["linear"], ["/", ["get", attrVisao()], 10],
+     ...st.flatMap((v, i) => [v, CORES_TAXA[i]])]];
+};
+const NIVEIS = [
+  { id: "municipios", op: 0.55 },
+  { id: "distritos", zmin: 7,
+    op: ["interpolate", ["linear"], ["zoom"],
+         6.9, 0, 7.1, 0.55, 10.95, 0.55, 11.05, 0] },
+  { id: "setores", zmin: 11,
+    op: ["interpolate", ["linear"], ["zoom"],
+         10.95, 0, 11.05, 0.55, 15, 0.45] },
+];
+function pinta() {
+  if (!mapa.getLayer("setores-fill")) return;
+  const expr = escalaDeficit();
+  for (const n of NIVEIS) {
+    mapa.setPaintProperty(`${n.id}-fill`, "fill-color", expr);
+    mapa.setPaintProperty(`${n.id}-fill`, "fill-outline-color", expr);
+  }
+  legenda();
+}
+function legenda() {
+  const el = document.getElementById("legenda");
+  el.replaceChildren();
+  if (!REG) return;
+  const st = REG.meta.stops_def;
+  const ramp = document.createElement("div");
+  ramp.className = "ramp";
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.style.background = `linear-gradient(90deg, ${CORES_TAXA[0]},
+    ${CORES_TAXA[1]}, ${CORES_TAXA[2]}, ${CORES_TAXA[3]},
+    ${CORES_TAXA[4]})`;
+  const tick = document.createElement("span");
+  tick.className = "tick"; tick.style.left = "50%";
+  bar.append(tick);
+  const pp = v => (v > 0 ? "+" : "") + fmt(v);
+  const a = document.createElement("span");
+  a.textContent = pp(st[0]);
+  const b = document.createElement("span");
+  b.textContent = pp(st[4]) + " pp";
+  ramp.append(a, bar, b);
+  el.append(ramp);
+  const nt = document.createElement("div");
+  nt.className = "legenda-nota";
+  nt.textContent = visao === "voto"
+    ? "Mais escuro = Lula mais abaixo do esperado pelo modelo (2022 + " +
+      "perfil do lugar); o traço marca a mediana nacional."
+    : "Mais escuro = abstenção mais acima da esperada pelo modelo " +
+      "(histórico + perfil); o traço marca a mediana nacional.";
+  el.append(nt);
+}
+
+// ---------- carga ----------
+const badges = r => ({ type: "FeatureCollection",
+  features: r.regioes.map(x => ({ type: "Feature",
+    properties: { n: x.n },
+    geometry: { type: "Point", coordinates: x.ll } })) });
+function veuDe(geo) {
+  const furos = [];
+  for (const f of geo.features) {
+    const polys = f.geometry.type === "Polygon"
+      ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const poly of polys) furos.push(poly[0]);
+  }
+  return { type: "Feature", properties: {},
+    geometry: { type: "Polygon",
+      coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85],
+                     [-180, -85]], ...furos] } };
+}
+async function carregaCorte(c) {
+  const k = visao + ":" + c;
+  if (!cacheCorte[k]) {
+    const base = PREF_VISAO[visao] + ARQ_CORTE[c];
+    cacheCorte[k] = Promise.all([
+      fetch(`dados/${base}.json`).then(r => r.json()),
+      fetch(`dados/${base}.geojson`).then(r => r.json())]);
+  }
+  return cacheCorte[k];
+}
+async function trocaVisao(v) {
+  visao = v;
+  document.getElementById("visao-voto").classList.toggle(
+    "ativo", v === "voto");
+  document.getElementById("visao-abst").classList.toggle(
+    "ativo", v === "abst");
+  document.getElementById("unidade-txt").textContent = v === "voto"
+    ? "Regiões onde Lula ficou abaixo do esperado no 1º turno de " +
+      "2026, segundo modelo que considera a eleição de 2022 e o " +
+      "perfil de cada lugar."
+    : "Regiões onde a abstenção de 2026 superou a esperada e Lula " +
+      "lidera: votos que a mobilização pode devolver às urnas.";
+  await trocaCorte(corte);
+  pinta();
+}
+async function trocaCorte(c) {
+  corte = c;
+  const minhaChave = visao + ":" + c;
+  listaExpandida = false;
+  for (const [id, k] of [["corte-menos", "menos"],
+      ["corte-padrao", "padrao"], ["corte-mais", "mais"]])
+    document.getElementById(id).classList.toggle("ativo", corte === k);
+  [REG, GEO] = await carregaCorte(c);
+  if (visao + ":" + corte !== minhaChave) return;  // troca rápida
+  geoAtual = GEO;
+  regiaoAtiva = null;
+  $r.style.display = "none";
+  montaIndices();
+  if (mapa.getSource("regioes")) {
+    mapa.getSource("regioes").setData(GEO);
+    mapa.getSource("regioes-pts").setData(badges(REG));
+    mapa.getSource("veu").setData(GEO.features.length ? veuDe(GEO)
+      : { type: "FeatureCollection", features: [] });
+    mapa.setPaintProperty("regioes-ln", "line-width", 2.2);
+    mapa.setPaintProperty("regioes-halo", "line-width", 4.5);
+  }
+  pintaPainel();
+  atualizaResumo();
+  gravaHash();
+}
+function atualizaResumo() {
+  const resumo = document.getElementById("cand-resumo");
+  resumo.replaceChildren();
+  const b1 = document.createElement("b");
+  b1.textContent = "≈ " + fmtMil(REG.meta.total_deficit);
+  const b2 = document.createElement("b");
+  b2.textContent = REG.meta.n_regioes;
+  if (visao === "voto")
+    resumo.append("O 1º turno deixou ", b1,
+      " votos de Lula abaixo do esperado pelo modelo. As ", b2,
+      ` regiões deste corte concentram ` +
+      `${Math.round(REG.meta.cobertura_regioes * 100)}% disso.`);
+  else
+    resumo.append("A abstenção acima da esperada custou ", b1,
+      " votos de Lula pelo modelo. As ", b2,
+      ` regiões deste corte (só onde Lula lidera) concentram ` +
+      `${Math.round(REG.meta.cobertura_regioes * 100)}% disso.`);
+}
+async function carrega() {
+  [[REG, GEO], MUNIS] = await Promise.all([
+    carregaCorte(corte),
+    (await fetch("dados/municipios.json")).json()]);
+  atualizaResumo();
+  document.getElementById("visao-voto").classList.toggle(
+    "ativo", visao === "voto");
+  document.getElementById("visao-abst").classList.toggle(
+    "ativo", visao === "abst");
+  document.getElementById("visao-voto").onclick = () =>
+    { if (visao !== "voto") trocaVisao("voto"); };
+  document.getElementById("visao-abst").onclick = () =>
+    { if (visao !== "abst") trocaVisao("abst"); };
+  if (visao === "abst")
+    document.getElementById("unidade-txt").textContent =
+      "Regiões onde a abstenção de 2026 superou a esperada e Lula " +
+      "lidera: votos que a mobilização pode devolver às urnas.";
+  for (const [id, k] of [["corte-menos", "menos"],
+      ["corte-padrao", "padrao"], ["corte-mais", "mais"]]) {
+    const b = document.getElementById(id);
+    b.classList.toggle("ativo", corte === k);
+    b.onclick = () => { if (corte !== k) trocaCorte(k); };
+  }
+  montaIndices();
+  montaBuscaEscopo();
+  pintaPainel();
+  setPainelRegioes(true);
+}
+
+// ---------- escopo geográfico: Brasil › UF › Município ----------
+// uma busca única (estado OU município, todos os 5.570 — quem não tem
+// região recebe o aviso) + breadcrumb clicável; trocar o escopo VOA o
+// mapa até lá (fitBounds da UF / centroide do município)
+const UF_NOMES = { AC:"Acre", AL:"Alagoas", AM:"Amazonas", AP:"Amapá",
+  BA:"Bahia", CE:"Ceará", DF:"Distrito Federal", ES:"Espírito Santo",
+  GO:"Goiás", MA:"Maranhão", MG:"Minas Gerais", MS:"Mato Grosso do Sul",
+  MT:"Mato Grosso", PA:"Pará", PB:"Paraíba", PE:"Pernambuco", PI:"Piauí",
+  PR:"Paraná", RJ:"Rio de Janeiro", RN:"Rio Grande do Norte",
+  RO:"Rondônia", RR:"Roraima", RS:"Rio Grande do Sul",
+  SC:"Santa Catarina", SE:"Sergipe", SP:"São Paulo", TO:"Tocantins" };
+let escopo = { nivel: "br", uf: null, mun: null };
+let MUNIS = null, munIndex = null;
+
+function montaIndices() {
+  munIndex = new Map();
+  for (const r of REG.regioes)
+    for (const m of r.muns) {
+      if (!munIndex.has(m.cd))
+        munIndex.set(m.cd, []);
+      munIndex.get(m.cd).push({ n: r.n, conv: m.conv });
+    }
+}
+function setEscopo(novo, voa = true) {
+  escopo = novo;
+  listaExpandida = false;
+  garanteAltura();
+  pintaPainel();
+  if (!voa) return;
+  if (novo.nivel === "br")
+    mapa.fitBounds([[-74, -33.8], [-34.8, 5.3]],
+      { padding: 20, duration: 1100 });
+  else if (novo.nivel === "uf") {
+    const b = REG.meta.bbox_uf && REG.meta.bbox_uf[novo.uf];
+    if (b) mapa.fitBounds([[b[0], b[1]], [b[2], b[3]]],
+      { padding: window.innerWidth <= 600 ? 24 :
+        { top: 40, bottom: 40, left: 400, right: 40 }, duration: 1100 });
+  } else if (novo.mun && novo.mun.ll)
+    mapa.flyTo({ center: novo.mun.ll, zoom: 10.6, speed: 1.5,
+                 essential: true });
+}
+function rotulosEscopo() {
+  document.getElementById("esc-br").classList.toggle(
+    "ativo", escopo.nivel === "br");
+  const bu = document.getElementById("esc-uf");
+  bu.classList.toggle("ativo", escopo.nivel === "uf");
+  bu.textContent = (escopo.uf || "Estado") + " ▾";
+  const bm = document.getElementById("esc-mu");
+  bm.classList.toggle("ativo", escopo.nivel === "mun");
+  bm.textContent = (escopo.mun ? escopo.mun.nm : "Município") + " ▾";
+}
+function montaBuscaEscopo() {
+  const inp = document.getElementById("escopo-busca");
+  const box = document.getElementById("escopo-sug");
+  const fecha = () => { box.classList.remove("aberto");
+                        inp.style.display = "none"; };
+  const sugItem = (rotulo, meta, acao) => {
+    const b = document.createElement("button");
+    b.className = "sug"; b.type = "button";
+    const n = document.createElement("div");
+    n.className = "sug-nome"; n.textContent = rotulo;
+    const m = document.createElement("div");
+    m.className = "sug-meta"; m.textContent = meta;
+    b.append(n, m);
+    b.addEventListener("mousedown", ev => {
+      ev.preventDefault(); fecha(); inp.blur(); acao();
+    });
+    return b;
+  };
+  // ESTADO: lista completa por toque, com contagem de regiões
+  document.getElementById("esc-uf").onclick = () => {
+    garanteAltura();
+    inp.style.display = "none";
+    box.replaceChildren();
+    for (const [sg, nm] of Object.entries(UF_NOMES)) {
+      const n = REG.regioes.filter(r => r.uf === sg).length;
+      box.append(sugItem(`${nm} (${sg})`,
+        n ? `${n} região${n > 1 ? "s" : ""}` : "nenhuma região",
+        () => setEscopo({ nivel: "uf", uf: sg, mun: null })));
+    }
+    box.classList.add("aberto");
+  };
+  // MUNICÍPIO: sugestões por toque (com região, por déficit; filtradas
+  // pela UF ativa) + busca que cobre os 5.570
+  const sugereMunicipios = q => {
+    box.replaceChildren();
+    const qq = semAcento(q.trim());
+    let base;
+    if (qq.length < 2) {
+      base = MUNIS.filter(m => munIndex.has(m[0]) &&
+        (!escopo.uf || m[2] === escopo.uf));
+      base.sort((a, b) =>
+        munIndex.get(b[0]).reduce((s, x) => s + x.conv, 0) -
+        munIndex.get(a[0]).reduce((s, x) => s + x.conv, 0));
+    } else {
+      base = MUNIS.filter(m => semAcento(m[1]).includes(qq));
+    }
+    for (const [cd, nm, uf, lon, lat] of base.slice(0, 12)) {
+      const regs = munIndex.get(cd) || [];
+      box.append(sugItem(`${nm} (${uf})`,
+        regs.length ? `${regs.length} região${regs.length > 1 ? "s" : ""}`
+                    : "nenhuma região",
+        () => setEscopo({ nivel: "mun", uf,
+                          mun: { cd, nm, ll: [lon, lat] } })));
+    }
+    box.classList.toggle("aberto", box.children.length > 0);
+  };
+  document.getElementById("esc-mu").onclick = () => {
+    garanteAltura();
+    inp.style.display = "block";
+    inp.value = "";
+    sugereMunicipios("");
+    inp.focus();
+  };
+  document.getElementById("esc-br").onclick = () => {
+    fecha();
+    setEscopo({ nivel: "br", uf: null, mun: null });
+  };
+  inp.addEventListener("input", () => sugereMunicipios(inp.value));
+  inp.addEventListener("keydown", e => {
+    if (e.key === "Escape") { fecha(); inp.blur(); }
+    if (e.key === "Enter") {
+      const b = box.querySelector(".sug");
+      if (b) b.dispatchEvent(new Event("mousedown"));
+    }
+  });
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#escopo-busca-box") &&
+        !e.target.closest("#escopo-abas")) fecha();
+  });
+}
+function itemRegiao(r, rank, sub) {
+  const b = document.createElement("button");
+  b.className = "reg" + (regiaoAtiva === r.n ? " ativo" : "");
+  const chip = document.createElement("span");
+  chip.className = "chip"; chip.textContent = rank ?? r.n;
+  const corpo = document.createElement("div");
+  corpo.className = "reg-corpo";
+  const nome = document.createElement("div");
+  nome.className = "reg-nome";
+  nome.textContent = r.nome + (r.uf ? ` (${r.uf})` : "");
+  const meta = document.createElement("div");
+  meta.className = "reg-meta";
+  meta.textContent = sub ??
+    `≈ ${fmtMil(r.conv)} votos abaixo do esperado · ` +
+    `${fmtMil(r.pop)} moradores`;
+  const perfil = document.createElement("div");
+  perfil.className = "reg-perfil";
+  const pf = r.perfil || {};
+  perfil.textContent = [
+    pf.renda_sm != null ? `renda ${fmt(pf.renda_sm)} SM` : null,
+    pf.pct_urbano != null ? `${fmt(pf.pct_urbano)}% urbana` : null,
+    pf.ap_pct_evangelica != null ?
+      `≈${fmt(pf.ap_pct_evangelica)}% evangélica` : null,
+  ].filter(Boolean).join(" · ");
+  corpo.append(nome, meta, perfil);
+  b.append(chip, corpo);
+  b.onclick = () => focaRegiao(r, b);
+  return b;
+}
+function aviso(txt, titulo) {
+  const d = document.createElement("div");
+  d.className = "pr-aviso";
+  const t = document.createElement("b");
+  t.textContent = titulo;
+  const x = document.createElement("span");
+  x.textContent = txt;
+  d.append(t, x);
+  return d;
+}
+function botaoMostrarTodas(lista, resto) {
+  const b = document.createElement("button");
+  b.className = "pr-mais";
+  b.textContent = `Mostrar todas (+${resto})`;
+  b.onclick = () => { listaExpandida = true; pintaPainel(); };
+  lista.append(b);
+}
+function pintaPainel() {
+  const lista = document.getElementById("pr-lista");
+  lista.replaceChildren();
+  if (!REG) return;
+  rotulosEscopo();
+  const cob = document.getElementById("pr-cobertura");
+  if (escopo.nivel === "br") {
+    const lim = listaExpandida ? Infinity : 50;
+    cob.textContent = listaExpandida ?
+      `${REG.meta.n_regioes} regiões` :
+      `top 50 de ${REG.meta.n_regioes}`;
+    for (const r of REG.regioes.slice(0, lim))
+      lista.append(itemRegiao(r));
+    if (REG.regioes.length > 50 && !listaExpandida)
+      botaoMostrarTodas(lista, REG.regioes.length - 50);
+    document.getElementById("pr-nota").textContent =
+      "As 50 maiores regiões do país por votos de Lula abaixo do " +
+      "esperado. Perfis: Censo 2022 (≈ = estimativa por área de " +
+      "ponderação).";
+  } else if (escopo.nivel === "uf") {
+    const todos = REG.regioes.filter(r => r.uf === escopo.uf);
+    const rs = todos.slice(0, listaExpandida ? Infinity : 25);
+    cob.textContent = rs.length ? `${rs.length} de ${escopo.uf}` : "";
+    if (!rs.length)
+      lista.append(aviso(visao === "voto"
+        ? "O modelo não encontrou nenhuma área contígua em " +
+          (UF_NOMES[escopo.uf] || escopo.uf) + " onde faltem votos a " +
+          "Lula em relação ao esperado acima do corte atual."
+        : "O modelo não encontrou nenhuma área contígua em " +
+          (UF_NOMES[escopo.uf] || escopo.uf) + " com abstenção acima " +
+          "da esperada em que Lula lidere: mobilizar onde ele perde " +
+          "devolveria mais voto ao adversário.",
+        "Nenhuma região em " + escopo.uf));
+    else {
+      rs.forEach((r, i) =>
+        lista.append(itemRegiao(r, i + 1,
+          `nº ${r.n} do país · ≈ ${fmtMil(r.conv)} votos · ` +
+          `${fmtMil(r.pop)} moradores`)));
+      if (todos.length > 25 && !listaExpandida)
+        botaoMostrarTodas(lista, todos.length - 25);
+    }
+    document.getElementById("pr-nota").textContent = rs.length ?
+      "Regiões do estado, pela ordem nacional." : "";
+  } else {
+    const regsT = (munIndex.get(escopo.mun.cd) || []).slice()
+      .sort((a, b) => b.conv - a.conv);
+    const regs = regsT.slice(0, listaExpandida ? Infinity : 10);
+    cob.textContent = regs.length ?
+      `${regs.length} em ${escopo.mun.nm}` : "";
+    if (!regs.length) {
+      lista.append(aviso((visao === "voto"
+        ? "O modelo não encontrou nenhuma região de déficit de Lula "
+        : "O modelo não encontrou nenhuma região de abstenção " +
+          "excedente (com Lula liderando) ") +
+        "tocando " + escopo.mun.nm + ". Vale conferir a mancha do " +
+        "mapa mesmo assim: o sinal pode existir de forma dispersa, " +
+        "abaixo do limiar de região.",
+        "Nada em " + escopo.mun.nm));
+      document.getElementById("pr-nota").textContent = "";
+      return;
+    }
+    regs.forEach((x, i) => {
+      const r = REG.regioes.find(q => q.n === x.n);
+      lista.append(itemRegiao(r, i + 1,
+        `nº ${r.n} do país · ≈ ${fmtMil(x.conv)} votos no município · ` +
+        `região com ${fmtMil(r.pop)} moradores`));
+    });
+    if (regsT.length > 10 && !listaExpandida)
+      botaoMostrarTodas(lista, regsT.length - 10);
+    document.getElementById("pr-nota").textContent =
+      "Regiões que tocam o município, ordenadas pelos votos de " +
+      "déficit dentro dele.";
+  }
+}
+
+// ---------- foco/ficha ----------
+let geoAtual = null;
+function focaRegiao(r, btn, opts) {
+  regiaoAtiva = r.n;
+  document.querySelectorAll("#pr-lista .reg").forEach(x =>
+    x.classList.remove("ativo"));
+  if (btn) btn.classList.add("ativo");
+  cardRegiao(r);
+  if (geoAtual && !(opts && opts.semVoo)) {
+    const f = geoAtual.features.find(x => x.properties.n === r.n);
+    if (f) {
+      let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
+      const anda = cs => { for (const c of cs) {
+        if (typeof c[0] === "number") {
+          x0 = Math.min(x0, c[0]); x1 = Math.max(x1, c[0]);
+          y0 = Math.min(y0, c[1]); y1 = Math.max(y1, c[1]);
+        } else anda(c); } };
+      anda(f.geometry.coordinates);
+      mapa.fitBounds([[x0, y0], [x1, y1]],
+        { padding: window.innerWidth <= 600 ? 30 :
+          { top: 60, bottom: 60, left: 420, right: 60 },
+          duration: 1100, maxZoom: 12.5 });
+    }
+  }
+  if (mapa.getLayer("regioes-ln")) {
+    mapa.setPaintProperty("regioes-ln", "line-width",
+      ["case", ["==", ["get", "n"], r.n], 3.6, 2.2]);
+    mapa.setPaintProperty("regioes-halo", "line-width",
+      ["case", ["==", ["get", "n"], r.n], 6.5, 4.5]);
+  }
+  gravaHash();
+  // no mobile a lista recolhe ao PICO (breadcrumb visível), não fecha
+  if (window.innerWidth <= 600) setDetente("peek");
+}
+const $r = document.getElementById("resultado");
+function kv(rotulo, valor) {
+  const d = document.createElement("div");
+  d.className = "card-kv";
+  const a = document.createElement("span"); a.textContent = rotulo;
+  const b = document.createElement("b"); b.textContent = valor;
+  d.append(a, b); return d;
+}
+function secao(titulo) {
+  const h = document.createElement("div");
+  h.className = "card-sec"; h.textContent = titulo;
+  return h;
+}
+function cardRegiao(r) {
+  $r.replaceChildren();
+  const x = document.createElement("button");
+  x.className = "fechar"; x.textContent = "✕";
+  x.setAttribute("aria-label", "Fechar");
+  x.onclick = () => { $r.style.display = "none"; };
+  $r.append(x);
+  const corpo = document.createElement("div");
+  const rot = document.createElement("div");
+  rot.className = "card-sec card-sec-1";
+  rot.textContent = `Região nº ${r.n} do país`;
+  corpo.append(rot);
+  const t = document.createElement("div");
+  t.className = "card-titulo";
+  t.textContent = r.nome + ` (${r.uf})`;
+  corpo.append(t);
+  const sub = document.createElement("div");
+  sub.className = "card-sub";
+  sub.textContent = `${r.muns.length} município` +
+    (r.muns.length > 1 ? "s" : "") + ` · ${fmtMil(r.pop)} moradores`;
+  corpo.append(sub);
+  const chave = document.createElement("div");
+  chave.className = "card-conv";
+  chave.textContent = visao === "voto"
+    ? `≈ ${fmtMil(r.conv)} votos de Lula abaixo do esperado`
+    : `≈ ${fmtMil(r.conv)} votos de Lula perdidos para a abstenção`;
+  corpo.append(chave);
+  if (visao === "voto") {
+    corpo.append(secao("Votação de Lula"));
+    corpo.append(kv("2º turno de 2022", fmt(r.l22) + "%"));
+    corpo.append(kv("1º turno de 2026 (real)", fmt(r.pl) + "%"));
+    corpo.append(kv("1º turno de 2026 (esperado)", fmt(r.esp) + "%"));
+    const d = r.esp - r.pl;
+    corpo.append(kv("Déficit médio",
+      (d > 0 ? "+" : "") + fmt(d) + " p.p."));
+  } else {
+    corpo.append(secao("Abstenção"));
+    corpo.append(kv("1º turno de 2022", fmt(r.ab22) + "%"));
+    corpo.append(kv("1º turno de 2026 (real)", fmt(r.abr) + "%"));
+    corpo.append(kv("1º turno de 2026 (esperada)", fmt(r.abe) + "%"));
+    const ex = r.abr - r.abe;
+    corpo.append(kv("Excesso médio",
+      (ex > 0 ? "+" : "") + fmt(ex) + " p.p."));
+    corpo.append(secao("O que a mobilização devolve"));
+    corpo.append(kv("Eleitores aptos", fmtMil(r.aptos)));
+    corpo.append(kv("Lula no 1º turno", fmt(r.pl) + "%"));
+    corpo.append(kv("Ganho líquido (desconta adversário)",
+      "≈ " + fmtMil(r.net)));
+  }
+  const pf = r.perfil || {};
+  corpo.append(secao("Perfil da população (Censo 2022)"));
+  if (pf.renda_sm != null)
+    corpo.append(kv("Renda média (responsáveis)",
+      `${fmt(pf.renda_sm)} SM` + (pf.renda_percentil_br != null
+        ? `, acima de ${pf.renda_percentil_br}% do país` : "")));
+  if (pf.idade_media != null)
+    corpo.append(kv("Idade média (15+)",
+      `${fmt(pf.idade_media)} anos · ${fmt(pf.pct_60mais)}% com 60+`));
+  if (pf.pct_alfabetizados != null)
+    corpo.append(kv("Alfabetização (15+)",
+      fmt(pf.pct_alfabetizados) + "%"));
+  if (pf.ap_pct_superior != null)
+    corpo.append(kv("Ensino superior (25+)",
+      "≈" + fmt(pf.ap_pct_superior) + "%"));
+  if (pf.ap_pct_catolica != null)
+    corpo.append(kv("Religião",
+      `≈${fmt(pf.ap_pct_catolica)}% catól. · ` +
+      `${fmt(pf.ap_pct_evangelica)}% evang. · ` +
+      `${fmt(pf.ap_pct_sem_religiao)}% sem rel.`));
+  if (pf.pct_urbano != null)
+    corpo.append(kv("População urbana", fmt(pf.pct_urbano) + "%"));
+  corpo.append(secao("Municípios, por déficit"));
+  for (const m of r.muns.slice(0, 8))
+    corpo.append(kv(m.nm, "≈ " + fmtMil(m.conv)));
+  if (r.muns.length > 8) {
+    const dd = document.createElement("div");
+    dd.className = "card-sub";
+    dd.textContent = `e mais ${r.muns.length - 8} municípios.`;
+    corpo.append(dd);
+  }
+  const nota = document.createElement("small");
+  nota.textContent = visao === "voto"
+    ? "Déficit = votos que faltaram a Lula em relação ao esperado por " +
+      "modelo que considera 2022 e o perfil do lugar (ver " +
+      "metodologia); medida de território, não de pessoas."
+    : "Abstenção esperada vem de modelo com o histórico 2018-2022 e o " +
+      "perfil do lugar; votos perdidos = excesso × aptos × fatia de " +
+      "Lula. Regiões só onde Lula lidera (ver metodologia).";
+  corpo.append(nota);
+  $r.append(corpo);
+  $r.style.display = "block";
+}
+
+// ---------- mapa ----------
+const PROMOTE = { municipios: "CD_MUN", setores: "CD_SETOR",
+                  distritos: "CD_DIST" };
+mapa.on("load", async () => {
+  await carrega();
+  mapa.addSource("dados", { type: "vector", url: "mapbox://" + TILESET_ID,
+                            promoteId: PROMOTE });
+  for (const l of mapa.getStyle().layers) {
+    if (/poi-label|transit-label|airport-label/.test(l.id))
+      mapa.setLayoutProperty(l.id, "visibility", "none");
+    if (/settlement-|state-label|country-label/.test(l.id) &&
+        l.type === "symbol") {
+      mapa.setPaintProperty(l.id, "text-color", "#2e2e2e");
+      mapa.setPaintProperty(l.id, "text-halo-color",
+        "rgba(255,255,255,0.9)");
+      mapa.setPaintProperty(l.id, "text-halo-width", 1.3);
+    }
+    if (l.type === "line" && /^(road|tunnel|bridge)/.test(l.id) &&
+        !/label/.test(l.id)) {
+      mapa.setPaintProperty(l.id, "line-opacity",
+        ["interpolate", ["linear"], ["zoom"],
+         6, 0.18, 9, 0.3, 11, 0.5, 12.5, 0.6, 14.5, 0.4, 16, 0.35]);
+    }
+  }
+  const camadas = mapa.getStyle().layers;
+  const ancora = (camadas.find(l => l.type === "line" &&
+    /^(tunnel|road|bridge)/.test(l.id)) ||
+    camadas.find(l => l.type === "symbol")).id;
+  const expr = escalaDeficit();
+  for (const n of NIVEIS) {
+    const def = { id: `${n.id}-fill`, type: "fill",
+      source: "dados", "source-layer": n.id,
+      paint: { "fill-color": expr, "fill-outline-color": expr,
+               "fill-opacity": n.op } };
+    if (n.zmin) def.minzoom = n.zmin;
+    mapa.addLayer(def, ancora);
+  }
+  if (mapa.getLayer("water")) {
+    mapa.moveLayer("water", ancora);
+    mapa.setPaintProperty("water", "fill-color", "#c3d7e4");
+  }
+  mapa.addLayer({ id: "municipios-linha", type: "line", source: "dados",
+    "source-layer": "municipios", minzoom: 5,
+    paint: { "line-color": "#ffffff",
+             "line-opacity": ["interpolate", ["linear"], ["zoom"],
+               5, 0.35, 7, 0.65, 10, 0.75, 14, 0.75],
+             "line-width": ["interpolate", ["linear"], ["zoom"],
+               6, 0.5, 10, 1.1, 14, 1.8] } }, ancora);
+  mapa.addLayer({ id: "distritos-linha", type: "line", source: "dados",
+    "source-layer": "distritos", minzoom: 7, maxzoom: 12,
+    paint: { "line-color": "#ffffff", "line-opacity": 0.4,
+             "line-width": 0.6 } }, ancora);
+  for (const l of mapa.getStyle().layers) {
+    if (l.id === "admin-1-boundary") {
+      mapa.moveLayer(l.id, ancora);
+      mapa.setPaintProperty(l.id, "line-color", "#6b6b6b");
+      mapa.setPaintProperty(l.id, "line-dasharray", [1, 0]);
+      mapa.setPaintProperty(l.id, "line-opacity",
+        ["interpolate", ["linear"], ["zoom"], 4, 0.8, 9, 0.7, 13, 0.6]);
+      mapa.setPaintProperty(l.id, "line-width",
+        ["interpolate", ["linear"], ["zoom"], 4, 1.4, 9, 1.8, 14, 2.2]);
+    }
+    if (l.id === "admin-1-boundary-bg")
+      mapa.setLayoutProperty(l.id, "visibility", "none");
+  }
+  const ancoraRot = camadas.find(l => l.type === "symbol").id;
+  mapa.addSource("regioes", { type: "geojson", data: GEO });
+  mapa.addSource("regioes-pts", { type: "geojson", data: badges(REG) });
+  mapa.addSource("veu", { type: "geojson", data: veuDe(GEO) });
+  geoAtual = GEO;
+  mapa.addLayer({ id: "veu", type: "fill", source: "veu",
+    paint: { "fill-color": "#ffffff", "fill-opacity": 0.45 } },
+    ancoraRot);
+  mapa.addLayer({ id: "regioes-fill", type: "fill", source: "regioes",
+    paint: { "fill-color": "#000000", "fill-opacity": 0.01 } },
+    ancoraRot);
+  mapa.addLayer({ id: "regioes-halo", type: "line", source: "regioes",
+    paint: { "line-color": "#ffffff", "line-width": 4.5,
+             "line-opacity": 0.75 } }, ancoraRot);
+  mapa.addLayer({ id: "regioes-ln", type: "line", source: "regioes",
+    paint: { "line-color": "#121212", "line-width": 2.2,
+             "line-opacity": 0.95 } }, ancoraRot);
+  // fichas numeradas em 3 faixas de zoom (nacional mostra só o topo)
+  for (const [suf, zmin, zmax, maxN] of [
+      ["a", 0, 5, 20], ["b", 5, 7, 60], ["c", 7, 24, 9999]]) {
+    mapa.addLayer({ id: "regioes-chip-" + suf, type: "circle",
+      source: "regioes-pts", minzoom: zmin, maxzoom: zmax,
+      filter: ["<=", ["get", "n"], maxN],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"],
+                                 4, 9, 10, 11],
+               "circle-color": "#ffffff",
+               "circle-stroke-color": "#121212",
+               "circle-stroke-width": 1.5 } });
+    mapa.addLayer({ id: "regioes-n-" + suf, type: "symbol",
+      source: "regioes-pts", minzoom: zmin, maxzoom: zmax,
+      filter: ["<=", ["get", "n"], maxN],
+      layout: { "text-field": ["get", "n"], "text-size": 11.5,
+                "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+                "text-allow-overlap": true,
+                "text-ignore-placement": true },
+      paint: { "text-color": "#121212" } });
+  }
+  pinta();
+  if (hash0.r) {
+    const r = REG.regioes.find(x => x.n === hash0.r);
+    if (r) focaRegiao(r, null, hash0.cam ? { semVoo: true } : {});
+  }
+});
+for (const suf of ["a", "b", "c"]) {
+  mapa.on("mouseenter", "regioes-chip-" + suf, () =>
+    mapa.getCanvas().style.cursor = "pointer");
+  mapa.on("mouseleave", "regioes-chip-" + suf, () =>
+    mapa.getCanvas().style.cursor = "");
+}
+mapa.on("mouseenter", "regioes-fill", () =>
+  mapa.getCanvas().style.cursor = "pointer");
+mapa.on("mouseleave", "regioes-fill", () =>
+  mapa.getCanvas().style.cursor = "");
+mapa.on("click", e => {
+  if (!REG || !mapa.getLayer("regioes-fill")) return;
+  const capas = ["regioes-chip-a", "regioes-chip-b", "regioes-chip-c",
+                 "regioes-fill"].filter(l => mapa.getLayer(l));
+  const fs = mapa.queryRenderedFeatures(e.point, { layers: capas });
+  if (!fs.length) { $r.style.display = "none"; return; }
+  const r = REG.regioes.find(x => x.n === fs[0].properties.n);
+  if (r) focaRegiao(r, null, { semVoo: true });
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { $r.style.display = "none";
+    document.getElementById("modal-met").classList.remove("aberto"); }
+});
+
+// ---------- endereço -> região mais próxima ----------
+function kmEntre(a, b) {
+  const kx = 111.32 * Math.cos((a[1] + b[1]) / 2 * Math.PI / 180);
+  return Math.hypot((a[0] - b[0]) * kx, (a[1] - b[1]) * 111.32);
+}
+window.addEventListener("load", () => {
+  const box = document.getElementById("q");
+  if (!box) return;
+  box.accessToken = TOKEN;
+  box.options = { country: "br", language: "pt", proximity: "ip" };
+  box.theme = { icons: { search: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'></svg>" } };
+  let marcador = null;
+  box.addEventListener("retrieve", e => {
+    const c = e.detail.features[0].geometry.coordinates;
+    if (marcador) marcador.remove();
+    marcador = new mapboxgl.Marker({ color: "#121212" })
+      .setLngLat(c).addTo(mapa);
+    if (!REG) return;
+    let melhor = null, dist = 1e9;
+    for (const r of REG.regioes) {
+      const d = kmEntre(c, r.ll);
+      if (d < dist) { dist = d; melhor = r; }
+    }
+    const p = document.getElementById("perto");
+    p.style.display = "block";
+    p.replaceChildren();
+    const bb = document.createElement("b");
+    bb.textContent = `nº ${melhor.n}, ${melhor.nome} (${melhor.uf})`;
+    p.append("Região mais próxima do endereço: ", bb,
+             `, a ~${Math.round(dist)} km.`);
+    focaRegiao(melhor, null, {});
+  });
+});
+
+// ---------- modal + posicionamento ----------
+document.getElementById("btn-met").onclick = () =>
+  document.getElementById("modal-met").classList.add("aberto");
+document.getElementById("fecha-met").onclick = () =>
+  document.getElementById("modal-met").classList.remove("aberto");
+document.getElementById("modal-met").addEventListener("click", e => {
+  if (e.target === e.currentTarget)
+    e.currentTarget.classList.remove("aberto");
+});
+// no mobile o mesmo botão abre e fecha o painel, então o rótulo
+// precisa dizer qual das duas ações o toque vai executar (padrão do
+// Daniel no site dos aliados, 11/10)
+const DETENTES = ["peek", "meia", "cheia"];
+// interação de esfera com o sheet no PICO: o conteúdo abriria na área
+// cortada (overflow hidden) e parecia travado — levanta p/ MEIA antes
+function garanteAltura() {
+  const p = document.getElementById("painel-regioes");
+  if (window.innerWidth <= 600 && p.classList.contains("aberto") &&
+      p.classList.contains("peek"))
+    setDetente("meia");
+}
+function setDetente(d) {
+  const p = document.getElementById("painel-regioes");
+  DETENTES.forEach(x => p.classList.remove(x));
+  p.classList.add(d);
+}
+function setPainelRegioes(aberto, detente) {
+  const p = document.getElementById("painel-regioes");
+  p.classList.toggle("aberto", aberto);
+  if (aberto) setDetente(detente || "meia");
+  document.getElementById("btn-regioes").textContent = aberto ?
+    "Esconder lista de regiões" : "Ver lista de regiões";
+}
+// alça: toque alterna meia<->cheia; arrasto sobe/desce um nível
+(() => {
+  const h = document.getElementById("pr-handle");
+  const p = document.getElementById("painel-regioes");
+  let y0 = null;
+  const nivel = () => DETENTES.findIndex(d => p.classList.contains(d));
+  h.addEventListener("touchstart", e => {
+    y0 = e.touches[0].clientY; }, { passive: true });
+  h.addEventListener("touchend", e => {
+    if (y0 == null) return;
+    const dy = e.changedTouches[0].clientY - y0;
+    y0 = null;
+    const n = nivel();
+    if (dy < -36) setDetente(DETENTES[Math.min(n + 1, 2)]);
+    else if (dy > 36) {
+      if (n === 0) setPainelRegioes(false);
+      else setDetente(DETENTES[n - 1]);
+    } else setDetente(n === 2 ? "meia" : "cheia");
+  }, { passive: true });
+  h.addEventListener("click", () =>
+    setDetente(p.classList.contains("cheia") ? "meia" : "cheia"));
+})();
+document.getElementById("btn-regioes").onclick = () =>
+  setPainelRegioes(!document.getElementById("painel-regioes")
+    .classList.contains("aberto"));
+function posiciona() {
+  if (window.innerWidth <= 600) return;
+  const r = document.querySelector(".ov-top").getBoundingClientRect();
+  const pr = document.getElementById("painel-regioes");
+  pr.style.top = (r.bottom + 8) + "px";
+  pr.style.maxHeight = `calc(100vh - ${r.bottom + 8 + 72}px)`;
+  $r.style.transform = `translate(${r.right + 10}px, ${r.top}px)`;
+}
+new ResizeObserver(posiciona).observe(document.querySelector(".ov-top"));
+window.addEventListener("resize", posiciona);
+posiciona();
+</script>
+</body>
+</html>
