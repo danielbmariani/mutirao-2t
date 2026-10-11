@@ -112,6 +112,15 @@ blocos onde Lula lidera.
 
 ## Reproduzir do zero
 
+O mapa completo de insumos (o que está neste repositório, o que está na
+Release, o que é público com URL) está em [INSUMOS.md](INSUMOS.md). Em
+resumo: com `dados_modelo/` + as geometrias da Release + dois parquets
+públicos do dashboard do projeto, TUDO é regenerável, inclusive o
+retreino dos modelos a partir dos dados públicos do TSE, porque a
+relação local de votação → setor está incluída.
+
+### Comandos
+
 Com os parquets de `dados_modelo/` você regenera regiões e tileset sem
 tocar nos dados brutos:
 
