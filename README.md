@@ -45,9 +45,9 @@ O site é 100% estático. Três passos:
 1. **Conta Mapbox própria** (o mapa usa tiles vetoriais do Mapbox):
    crie um token público (pk) restrito ao seu domínio, e um token
    secreto (sk) com escopo de uploads.
-2. **Tileset**: baixe o arquivo `mapa_lula_v3.mbtiles` da
-   [Release deste repositório](../../releases) e suba para a sua conta:
-   `python tiles/upload_mapbox_35.py mapa_lula_v3.mbtiles SEU_TILESET
+2. **Tileset**: baixe o arquivo `mapa_lula_v4.mbtiles` da
+   [Release v1.1 deste repositório](../../releases) e suba para a sua conta:
+   `python tiles/upload_mapbox_35.py mapa_lula_v4.mbtiles SEU_TILESET
    "Nome"` (o script lê o sk de um arquivo; ajuste o caminho no topo).
    Alternativa: Mapbox Studio aceita o upload manual do mbtiles.
 3. **Site**: em `site/index.html`, troque as constantes `TOKEN` (seu
@@ -151,8 +151,11 @@ python -m venv .venv && .venv/bin/pip install duckdb pandas numpy \
 
 Para refazer os MODELOS a partir dos dados brutos é preciso o pipeline
 completo de agregação eleitoral por setor censitário: resultados por
-seção do TSE agregados por local de votação e distribuídos aos setores
-vizinhos com peso inverso à distância (metodologia do
+seção do TSE agregados por local de votação e repartidos entre os
+setores vizinhos por proximidade e população, cada eleitor contado
+uma única vez (`modelos/distribuicao_85.py`, modelo gravitacional
+com ajuste iterativo — desde 12/10/2026; antes, peso inverso à
+distância, metodologia do
 [deltafolha](https://github.com/deltafolha/eleicoes-por-setores-censitarios),
 inspirada no Pindograma), mais a malha e os agregados do Censo 2022 do
 IBGE e o detalhe de votação por seção (aptos e abstenções). Os insumos

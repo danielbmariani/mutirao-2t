@@ -370,8 +370,9 @@ addEventListener('DOMContentLoaded', function () {
     <h3>Fontes e limites</h3>
     <p>TSE (votação por seção de 2018, 2022 e 2026, cadastro de locais
     de votação); IBGE (malha e agregados do Censo 2022, áreas de
-    ponderação). A passagem de local de votação para setor usa pesos por
-    distância (metodologia do
+    ponderação). A passagem de local de votação para setor reparte os eleitores
+    de cada local entre os setores vizinhos por proximidade e população,
+    cada eleitor contado uma única vez (metodologia do
     <a href="https://mapa-eleicoes.danielmariani.com.br" target="_blank"
     rel="noopener">mapa da eleição</a>). O déficit é uma medida
     agregada de território, não uma contagem de pessoas; parte dele se
@@ -384,7 +385,7 @@ addEventListener('DOMContentLoaded', function () {
 
 <script>
 const TOKEN = "COLOQUE_AQUI_SEU_TOKEN_PUBLICO_MAPBOX";
-const TILESET_ID = "danielbmariani.lula_deficit_2026_v3";
+const TILESET_ID = "danielbmariani.lula_deficit_2026_v4";
 mapboxgl.accessToken = TOKEN;
 
 const fmt = x => (x == null ? "s/d" :

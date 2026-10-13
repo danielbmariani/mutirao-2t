@@ -11,15 +11,16 @@ contém está na Release ou em fonte pública com URL.
 | `setor_deficit_lula.parquet` | saída do modelo de voto por setor (real, esperado, déficit, válidos) |
 | `setor_abst_lula.parquet` | saída do modelo de abstenção por setor (real, esperada, excesso, aptos, vperd, vnet) |
 | `biometria_municipio.parquet` | cobertura biométrica municipal 2022/2026 e variação (insumo do modelo de abstenção) |
-| `relacao_malha2022_2026_t1_lv.parquet` | a relação local de votação → setor censitário com distâncias (peça-chave: com ela os modelos são retreináveis só com dados públicos do TSE) |
+| `shares_malha2022_2026_t1.parquet` | a repartição de cada local de votação entre os setores censitários (`share` = fração dos eleitores da urna atribuída ao setor; soma 1 por urna) — PEÇA-CHAVE desde 12/10/2026: com ela os modelos são retreináveis só com dados públicos do TSE (gerada por `modelos/distribuicao_85.py`) |
+| `relacao_malha2022_2026_t1_lv.parquet` | a relação anterior local → setor com distâncias (método do inverso da distância, até 12/10/2026; mantida para auditoria) |
 | `distritos_eleicao.parquet` | nomes e agregados eleitorais por distrito censitário (nomes das regiões) |
 | `setores_completo.{parquet,csv.gz}` | UMA linha por setor: real/esperado/déficit das duas visões + região de interesse |
 
-## Na Release v1.0 deste repositório
+## Na Release v1.1 deste repositório
 
 | Arquivo | O que é | Precisa para |
 |---|---|---|
-| `mapa_lula_v3.mbtiles` | tileset pronto (atributos d e a) | hospedar sem rebuild |
+| `mapa_lula_v4.mbtiles` | tileset pronto (atributos d e a) | hospedar sem rebuild |
 | `subdistritos_2022.parquet` | geometria dos 11.311 subdistritos (dissolve da malha IBGE) | gerar regiões |
 | `municipios_2022.parquet` | geometria municipal | gerar tileset |
 | `distritos_2022.parquet` | geometria distrital | gerar tileset |

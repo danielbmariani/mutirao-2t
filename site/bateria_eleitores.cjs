@@ -137,8 +137,12 @@ const ok = (cond, nome) => {
      "abst: ficha com abstenção e ganho líquido");
   await p.evaluate(() => document.getElementById("visao-voto").click());
   await new Promise(r => setTimeout(r, 2200));
-  ok(await p.evaluate(() => REG.meta.n_regioes === 132),
-     "volta à visão voto (132)");
+  // nº de regiões do corte padrão lido do JSON publicado (era 132 fixo —
+  // mudou para 111 com o método conservativo em 12/10)
+  const nRegVoto = JSON.parse(require("fs").readFileSync(
+    __dirname + "/dados/regioes.json", "utf8")).meta.n_regioes;
+  ok(await p.evaluate(n => REG.meta.n_regioes === n, nRegVoto),
+     `volta à visão voto (${nRegVoto})`);
   // carga inicial com hash de corte (regressão TDZ 11/10)
   const p2 = await b.newPage();
   const erros2 = [];

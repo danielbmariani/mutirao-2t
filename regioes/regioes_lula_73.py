@@ -23,14 +23,14 @@ from shapely.geometry import mapping
 from shapely.ops import unary_union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import DADOS, DIR_RELATORIOS
+from config import DADOS, DIR_PROC, DIR_RELATORIOS, DIR_SITES
 
-PQ_DEF = DADOS / "processados/eleitores/setor_deficit_lula.parquet"
-PQ_DASH = DADOS / "processados/dashboard/setores_eleicao_renda.parquet"
-PQ_APOND = DADOS / "processados/dashboard/apond_completo.parquet"
-PQ_DIST = DADOS / "processados/resultados_por_distrito/distritos_eleicao.parquet"
+PQ_DEF = DIR_PROC / "eleitores/setor_deficit_lula.parquet"
+PQ_DASH = DIR_PROC / "dashboard/setores_eleicao_renda.parquet"
+PQ_APOND = DIR_PROC / "dashboard/apond_completo.parquet"
+PQ_DIST = DIR_PROC / "resultados_por_distrito/distritos_eleicao.parquet"
 PQ_SUB = DADOS / "brutos/censo/malha/subdistritos_2022.parquet"
-DIR_SITE = Path(__file__).resolve().parent.parent / "embed_eleitores/dados"
+DIR_SITE = DIR_SITES / "embed_eleitores/dados"
 
 # três cortes pré-computados p/ o controle do site (11/10):
 #   menos (1.5 pp / 2000 votos) · padrão (1.0/1000) · mais (0.6/500)
@@ -254,6 +254,11 @@ def main():
                       "geometry": {"type": gm["type"],
                                    "coordinates":
                                    arredonda(gm["coordinates"])}})
+    # pertinência bloco -> região (p/ CSV público por setor)
+    membros = pd.concat([regs_g.assign(n=i + 1)[["CD_SUB", "n"]]
+                         for i, regs_g in enumerate(regioes[:len(lista)])])
+    membros.to_parquet(DIR_PROC / "eleitores" /
+                       f"membros{SUFIXO}.parquet", index=False)
     cobertura = sum(x["conv"] for x in lista) / total if total else 0
     o = d.sort_values("deficit_pp")
     cwv = o.validos.cumsum() / o.validos.sum()

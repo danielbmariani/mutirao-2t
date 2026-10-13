@@ -21,7 +21,10 @@ API = f"https://api.mapbox.com/uploads/v1/{USER}"
 def main(mbtiles: str, tileset: str, nome: str | None = None):
     arq = Path(mbtiles)
     assert arq.exists(), arq
-    nome = (nome or tileset)[:64]  # a API recusa name > 64 caracteres
+    # a API recusa name > 64 caracteres E com parênteses/+ (lições 11-12/10):
+    # saneia para letras, dígitos, espaço, hífen e sublinhado
+    import re
+    nome = re.sub(r"[^A-Za-z0-9 _-]", "", nome or tileset).strip()[:64]
     print(f"{arq.name} ({arq.stat().st_size/1e9:.2f} GB) -> "
           f"{USER}.{tileset}", flush=True)
 

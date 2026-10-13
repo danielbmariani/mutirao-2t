@@ -1,5 +1,5 @@
 {
- "gerado": "2026-10-11",
+ "gerado": "2026-10-12",
  "sklearn": "1.9.1",
  "python": "3.11.15",
  "nota": "Modelos full-fit em todos os setores. Os números do site vêm de predições out-of-fold (ver metricas/); use estes objetos para aplicar a dados novos. A predição da abstenção é a média do ensemble.",

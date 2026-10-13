@@ -18,11 +18,9 @@ TILE_JOIN = Path.home() / ".local/share/tippecanoe/tile-join"
 DIR_TILES = DADOS / "processados/tiles"
 PQ_DEF = DADOS / "processados/eleitores/setor_deficit_lula.parquet"
 PQ_ABS = DADOS / "processados/eleitores/setor_abst_lula.parquet"
-# geometrias: parquets da Release deste repositório (derivados das
-# malhas públicas do IBGE Censo 2022)
-GJ_MUN = DIR_TILES / "municipios_2022.parquet"
-GJ_DIST = DIR_TILES / "distritos_2022.parquet"
-SAIDA = DIR_TILES / "mapa_lula_v3.mbtiles"  # v3 = abstenção com biometria
+GJ_MUN = DIR_TILES / "municipios_v8r.geojsonl"
+GJ_DIST = DIR_TILES / "distritos_v8r.geojsonl"
+SAIDA = DIR_TILES / "mapa_lula_v4.mbtiles"  # v4 12/10 noite = distribuição conservativa; v3 = abstenção com biometria
 
 
 def tp(args):
@@ -53,14 +51,13 @@ def main():
     dist_at = agg("substr(CD_SETOR, 1, 9)", "CD_DIST")
     mun_at = agg("cd_mun", "CD_MUN")
 
-    mun = gpd.read_parquet(GJ_MUN)[["CD_MUN", "NM_MUN", "SIGLA_UF",
-                                    "geometry"]]
+    mun = gpd.read_file(GJ_MUN, columns=["CD_MUN", "NM_MUN", "SIGLA_UF",
+                                         "geometry"])
     mun = mun.merge(mun_at, left_on="CD_MUN", right_index=True, how="left")
     gj_m = DIR_TILES / "municipios_lula.geojsonl"
     mun.to_file(gj_m, driver="GeoJSONSeq")
-    dist = gpd.read_parquet(GJ_DIST)
-    dist = dist[[c for c in ("CD_DIST", "NM_DIST", "CD_MUN", "NM_MUN",
-                             "geometry") if c in dist.columns]]
+    dist = gpd.read_file(GJ_DIST, columns=["CD_DIST", "NM_DIST", "CD_MUN",
+                                           "NM_MUN", "geometry"])
     dist = dist.merge(dist_at, left_on="CD_DIST", right_index=True,
                       how="left")
     gj_d = DIR_TILES / "distritos_lula.geojsonl"

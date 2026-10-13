@@ -34,12 +34,14 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from config import DADOS, DIR_RELACAO, DIR_RELATORIOS
+from config import DADOS, DIR_PROC, DIR_RELATORIOS
+from shares_lv import shares_sql
 
-PQ_DASH = DADOS / "processados/dashboard/setores_eleicao_renda.parquet"
-PQ_APOND = DADOS / "processados/dashboard/apond_completo.parquet"
-DIR_OUT = DADOS / "processados/eleitores"
-REL = DIR_RELACAO / "relacao_malha2022_2026_t1_lv.parquet"
+PQ_DASH = DIR_PROC / "dashboard/setores_eleicao_renda.parquet"
+PQ_APOND = DIR_PROC / "dashboard/apond_completo.parquet"
+DIR_OUT = DIR_PROC / "eleitores"
+# biometria é INSUMO (abstencao_cadastro_63), não depende do método
+PQ_BIOM = DADOS / "processados/eleitores/biometria_municipio.parquet"
 DETALHE = DADOS / "brutos/tse/detalhe/detalhe_votacao_secao_2026_BR.csv"
 
 FEATURES = [
@@ -66,11 +68,7 @@ def aptos_norm(con):
       WHERE NR_TURNO = '1' AND SG_UF <> 'ZZ' AND CD_CARGO = '1'
       GROUP BY 1
     ), shares AS (
-      SELECT lv_uid, CD_SETOR,
-             (1.0 / greatest(distancia_centroide, 1.0)) /
-             SUM(1.0 / greatest(distancia_centroide, 1.0))
-               OVER (PARTITION BY lv_uid) AS share
-      FROM '{REL}'
+      SELECT * FROM {shares_sql(2026, 1)}
     )
     SELECT s.CD_SETOR, SUM(s.share * l.aptos) AS aptos
     FROM shares s JOIN lv l USING (lv_uid) GROUP BY 1
@@ -128,7 +126,7 @@ def main():
     """).df()
     ap = aptos_norm(con)
     df = df.merge(ap, on="CD_SETOR")
-    biom = pd.read_parquet(DIR_OUT / "biometria_municipio.parquet")
+    biom = pd.read_parquet(PQ_BIOM)
     df = df.merge(biom[["cd_mun", "pct_biometria26",
                         "delta_biometria"]].rename(
         columns={"pct_biometria26": "biometria26"}),
