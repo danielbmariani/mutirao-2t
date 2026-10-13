@@ -17,6 +17,62 @@ const ok = (cond, nome) => {
   p.on("pageerror", e => erros.push(e.message));
   await p.goto(URL, { waitUntil: "networkidle2", timeout: 90000 });
   await new Promise(r => setTimeout(r, 8000));
+  // ---------- unidades (13/10): padrão MUNICÍPIO ----------
+  ok(await p.evaluate(() => unidade === "mun" &&
+    document.getElementById("unid-mun").classList.contains("ativo")),
+    "unidade: padrão município");
+  ok(await p.evaluate(() => document.getElementById("pr-titulo")
+    .textContent.includes("Municípios")), "unidade: título do painel");
+  ok(await p.evaluate(() =>
+    document.getElementById("corte-row").style.display === "none"),
+    "unidade: corte do modelo escondido fora de Região");
+  ok(await p.evaluate(() =>
+    document.querySelectorAll("#pr-lista .reg").length === 50 &&
+    REG.meta.n_regioes > 2000), "município: top 50 de milhares");
+  ok(await p.evaluate(() => document.querySelector("#pr-lista .reg .reg-nome")
+    .textContent.includes("Goiânia")), "município: Goiânia no topo");
+  await p.evaluate(() => document.querySelector("#pr-lista .reg").click());
+  await new Promise(r => setTimeout(r, 2200));
+  ok(await p.evaluate(() => document.getElementById("resultado")
+    .textContent.includes("Município nº 1")), "município: ficha própria");
+  ok(await p.evaluate(() => JSON.stringify(mapa.getFilter("area-mun-ln"))
+    .includes("5208707")), "município: realce no tileset");
+  ok(await p.evaluate(() => mapa.getZoom() > 8), "município: mapa voou");
+  // distrito
+  await p.evaluate(() => document.getElementById("unid-dist").click());
+  await new Promise(r => setTimeout(r, 5000));
+  ok(await p.evaluate(() => unidade === "dist" && REG.meta.n_regioes > 5000
+    && document.querySelectorAll("#pr-lista .reg").length === 50),
+    "distrito: catálogo carregado");
+  ok(await p.evaluate(() => location.hash.includes("u=dist")),
+     "distrito: hash u=dist");
+  await p.evaluate(() => document.getElementById("esc-mu").click());
+  await new Promise(r => setTimeout(r, 300));
+  await p.evaluate(() => {
+    const i = document.getElementById("escopo-busca");
+    i.value = "sao paulo"; i.dispatchEvent(new Event("input"));
+  });
+  await new Promise(r => setTimeout(r, 400));
+  await p.evaluate(() =>
+    [...document.querySelectorAll("#escopo-sug .sug")]
+      .find(x => x.textContent.includes("São Paulo (SP)"))
+      .dispatchEvent(new Event("mousedown")));
+  await new Promise(r => setTimeout(r, 2200));
+  ok(await p.evaluate(() => {
+    const n = document.querySelectorAll("#pr-lista .reg").length;
+    return n >= 1 && n <= 10 && document.getElementById("pr-nota")
+      .textContent.includes("Distritos do município");
+  }), "distrito: escopo São Paulo lista distritos");
+  ok(await p.evaluate(() => mapa.getSource("regioes-pts")._data
+    .features.length <= 10), "distrito: fichas do mapa só do escopo");
+  await p.evaluate(() => document.getElementById("esc-br").click());
+  await new Promise(r => setTimeout(r, 1500));
+  // o restante da bateria roda na unidade REGIÃO (comportamento original)
+  await p.evaluate(() => document.getElementById("unid-regiao").click());
+  await new Promise(r => setTimeout(r, 3000));
+  ok(await p.evaluate(() =>
+    document.getElementById("corte-row").style.display !== "none"),
+    "região: corte do modelo visível");
   ok(await p.evaluate(() =>
     document.querySelectorAll("#pr-lista .reg").length === 50),
     "Brasil: top 50");
@@ -205,7 +261,7 @@ const ok = (cond, nome) => {
   const p2 = await b.newPage();
   const erros2 = [];
   p2.on("pageerror", e => erros2.push(e.message.slice(0,80)));
-  await p2.goto(URL.replace(/#.*/, "") + "#v=abst&s=mais",
+  await p2.goto(URL.replace(/#.*/, "") + "#v=abst&s=mais&u=regiao",
                 { waitUntil: "networkidle2", timeout: 90000 });
   await new Promise(r => setTimeout(r, 7000));
   ok(await p2.evaluate(() => REG && REG.meta.n_regioes > 120 &&
@@ -218,7 +274,7 @@ const ok = (cond, nome) => {
   const p3 = await b.newPage();
   const erros3 = [];
   p3.on("pageerror", e => erros3.push(e.message.slice(0,80)));
-  await p3.goto(URL.replace(/#.*/, "") + "#v=swing&s=menos",
+  await p3.goto(URL.replace(/#.*/, "") + "#v=swing&s=menos&u=regiao",
                 { waitUntil: "networkidle2", timeout: 90000 });
   await new Promise(r => setTimeout(r, 7000));
   const nSwMenos = JSON.parse(require("fs").readFileSync(
@@ -231,6 +287,20 @@ const ok = (cond, nome) => {
   ok(erros3.length === 0,
      "hash swing: sem pageerrors (" + erros3.join(";") + ")");
   await p3.close();
+  // abertura direta em distrito + queda
+  const p4 = await b.newPage();
+  const erros4 = [];
+  p4.on("pageerror", e => erros4.push(e.message.slice(0,80)));
+  await p4.goto(URL.replace(/#.*/, "") + "#u=dist&v=swing",
+                { waitUntil: "networkidle2", timeout: 90000 });
+  await new Promise(r => setTimeout(r, 8000));
+  ok(await p4.evaluate(() => unidade === "dist" && visao === "swing" &&
+    REG.meta.n_regioes > 5000 &&
+    document.getElementById("unid-dist").classList.contains("ativo")),
+    "hash u=dist&v=swing: unidade e visão certas");
+  ok(erros4.length === 0,
+     "hash dist: sem pageerrors (" + erros4.join(";") + ")");
+  await p4.close();
   await p.screenshot({ path: "/tmp/eleitores_aud_desktop.png" });
   await p.close();
   // ---------- mobile: sheet de 3 alturas ----------

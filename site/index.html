@@ -279,6 +279,12 @@ addEventListener('DOMContentLoaded', function () {
     <button id="visao-abst">Abstenção excedente</button>
     <button id="visao-swing">Queda desde 2022</button>
   </div>
+  <div class="pr-corte" id="unidade-row" style="margin:0 0 8px">
+    <span>Unidade</span>
+    <button id="unid-mun" class="ativo">Município</button>
+    <button id="unid-dist">Distrito</button>
+    <button id="unid-regiao">Região</button>
+  </div>
   <div id="busca-box"><mapbox-search-box id="q" placeholder="Seu endereço: achamos a região mais próxima"></mapbox-search-box></div>
   <p id="cand-resumo"></p>
   <p id="perto" style="display:none;font-size:11.5px;color:#444;
@@ -290,14 +296,14 @@ addEventListener('DOMContentLoaded', function () {
 <div id="painel-regioes" class="glass">
   <div class="pr-handle" id="pr-handle" aria-label="Arraste para
        redimensionar a lista"></div>
-  <div class="pr-cab"><span>Regiões prioritárias</span>
+  <div class="pr-cab"><span id="pr-titulo">Municípios prioritários</span>
     <small id="pr-cobertura"></small></div>
   <div class="pr-abas" id="escopo-abas">
     <button id="esc-br" class="ativo">Brasil</button>
     <button id="esc-uf">Estado ▾</button>
     <button id="esc-mu">Município ▾</button>
   </div>
-  <div class="pr-corte"><span>Corte do modelo</span>
+  <div class="pr-corte" id="corte-row"><span>Corte do modelo</span>
     <button id="corte-menos">Menos</button>
     <button id="corte-padrao" class="ativo">Padrão</button>
     <button id="corte-mais">Mais regiões</button>
@@ -379,6 +385,17 @@ addEventListener('DOMContentLoaded', function () {
     terreno desde 2022; o déficit, onde ficou abaixo do que o perfil do
     lugar e o próprio 2022 fariam esperar; a abstenção, onde a
     desmobilização explica a diferença.</p>
+    <h3>As unidades</h3>
+    <p>O seletor "Unidade" escolhe em que área os números são somados e
+    ranqueados. Município (5.570) e distrito censitário (10,7 mil, o
+    "bairro" do IBGE nas cidades grandes) usam a soma direta dos setores
+    de cada área, nas mesmas fórmulas das visões; são as unidades para
+    organizar trabalho de território. Região é a mancha montada pelo
+    modelo: grupos contíguos de subdistritos onde o sinal se concentra,
+    mesmo que atravessem limites municipais; só ela tem o "corte do
+    modelo". Nas visões de abstenção e de queda, município e distrito
+    seguem as mesmas regras das regiões (só onde Lula lidera; só com
+    comparação estável entre 2022 e 2026).</p>
     <h3>As regiões</h3>
     <p>Blocos são subdistritos censitários (11,3 mil no país); viram
     região os grupos contíguos onde Lula ficou ao menos 1 ponto abaixo
@@ -425,6 +442,7 @@ const semAcento = t => (t || "").normalize("NFD")
 let REG = null, GEO = null, regiaoAtiva = null;
 let corte = "padrao";          // menos | padrao | mais
 let visao = "voto";            // voto | abst | swing
+let unidade = "mun";           // mun | dist | regiao (padrão município, 13/10)
 let listaExpandida = false;    // "mostrar todas" do escopo atual
 const cacheCorte = {};
 const ARQ_CORTE = { menos: "_menos", padrao: "", mais: "_mais" };
@@ -445,6 +463,59 @@ const TEXTO_UNIDADE = {
 const MOEDA = { voto: "votos abaixo do esperado",
                 abst: "votos perdidos para a abstenção",
                 swing: "votos perdidos desde 2022" };
+const UNIDADES = ["mun", "dist", "regiao"];
+const UNID = {
+  mun: { um: "Município", pl: "municípios", chave: "CD_MUN",
+         camada: "municipios", zmax: 10.5 },
+  dist: { um: "Distrito", pl: "distritos", chave: "CD_DIST",
+          camada: "distritos", zmax: 12.5 },
+  regiao: { um: "Região", pl: "regiões", chave: null, camada: null,
+            zmax: 12.5 } };
+const MOEDA_CHAVE = { voto: "v", abst: "a", swing: "s" };
+const cacheAreas = {};
+async function carregaAreas(n) {
+  if (!cacheAreas[n])
+    cacheAreas[n] = fetch(`dados/areas_${n}.json`).then(r => r.json());
+  return cacheAreas[n];
+}
+// catálogo da unidade na visão ativa, no MESMO formato das regiões
+// (nome, uf, conv, muns, perfil, ll...) para reaproveitar lista e ficha
+function catalogoAreas(n, dados) {
+  const k = MOEDA_CHAVE[visao];
+  const munMap = new Map((MUNIS || []).map(m => [m[0], m]));
+  const lista = [];
+  for (const x of dados.areas) {
+    const mo = x[k];
+    if (!mo || !(mo.conv > 0)) continue;
+    const mm = n === "mun" ? [x.cd, x.nm, x.uf] :
+      (munMap.get(x.m) || [x.m, "?", "?"]);
+    const p = x.p || {};
+    lista.push({ cd: x.cd, nome: x.nm, uf: mm[2], mun_cd: mm[0],
+      mun_nm: mm[1], pop: x.pop, ll: x.ll, bb: x.bb, ...mo,
+      muns: [{ cd: mm[0], nm: mm[1], conv: mo.conv }],
+      perfil: { renda_sm: p.r, renda_percentil_br: p.rp,
+        idade_media: p.im, pct_60mais: p.p60, pct_alfabetizados: p.alf,
+        pct_urbano: p.urb, ap_pct_catolica: p.cat,
+        ap_pct_evangelica: p.eva, ap_pct_sem_religiao: p.sr,
+        ap_pct_superior: p.sup } });
+  }
+  lista.sort((a, b) => b.conv - a.conv);
+  lista.forEach((r, i) => { r.n = i + 1; });
+  const total = dados.meta.total[k] || 0;
+  const top50 = lista.slice(0, 50).reduce((s, r) => s + r.conv, 0);
+  return { meta: { n_regioes: lista.length, total_deficit: total,
+                   cobertura_regioes: total ? top50 / total : 0,
+                   unidade: n, limiar_pp: REG_LIMIAR[visao],
+                   stops_def: STOPS_VISAO[visao] },
+           regioes: lista };
+}
+// limiar do corte padrão de cada visão (texto do resumo da queda)
+const REG_LIMIAR = { voto: 1.0, abst: 1.5, swing: 6.0 };
+// âncoras da escala (quantis dos blocos, por visão): a cor do mapa não
+// depende da unidade; valores dos regioes*.json, atualizados ao carregar
+const STOPS_VISAO = { voto: [-3.5, -1.1, -0.2, 0.7, 4.5],
+                      abst: [-4.6, -1.0, -0.1, 0.8, 4.4],
+                      swing: [-2.7, 1.4, 3.2, 5.2, 11.3] };
 let aba = "br", ufSel = "", munSel = null;
 
 function leHash() {
@@ -452,6 +523,7 @@ function leHash() {
   const out = {};
   if (["menos", "mais"].includes(h.get("s"))) out.s = h.get("s");
   if (["abst", "swing"].includes(h.get("v"))) out.v = h.get("v");
+  if (["dist", "regiao"].includes(h.get("u"))) out.u = h.get("u");
   if (h.get("r") && isFinite(+h.get("r"))) out.r = +h.get("r");
   const p = (h.get("p") || "").split(",");
   if (p.length === 3 && p.every(x => isFinite(+x)))
@@ -461,6 +533,7 @@ function leHash() {
 const hash0 = leHash();
 if (hash0.s) corte = hash0.s;
 if (hash0.v) visao = hash0.v;
+if (hash0.u) unidade = hash0.u;
 let hashTimer = null;
 function gravaHash() {
   clearTimeout(hashTimer);
@@ -470,6 +543,7 @@ function gravaHash() {
       (regiaoAtiva ? `#r=${regiaoAtiva}&` : "#") +
       (corte !== "padrao" ? `s=${corte}&` : "") +
       (visao !== "voto" ? `v=${visao}&` : "") +
+      (unidade !== "mun" ? `u=${unidade}&` : "") +
       `p=${c.lng.toFixed(4)},${c.lat.toFixed(4)},` +
       mapa.getZoom().toFixed(2));
   }, 400);
@@ -582,6 +656,21 @@ async function carregaCorte(c) {
   }
   return cacheCorte[k];
 }
+function marcaUnidade() {
+  for (const k of UNIDADES)
+    document.getElementById("unid-" + k).classList.toggle(
+      "ativo", unidade === k);
+  document.getElementById("corte-row").style.display =
+    unidade === "regiao" ? "" : "none";
+  document.getElementById("pr-titulo").textContent =
+    { mun: "Municípios prioritários", dist: "Distritos prioritários",
+      regiao: "Regiões prioritárias" }[unidade];
+}
+async function trocaUnidade(u) {
+  unidade = u;
+  marcaUnidade();
+  await trocaCorte(corte);
+}
 function marcaVisao() {
   for (const k of VISOES)
     document.getElementById("visao-" + k).classList.toggle(
@@ -594,30 +683,61 @@ async function trocaVisao(v) {
   await trocaCorte(corte);
   pinta();
 }
+async function carregaCatalogo(c) {
+  if (unidade === "regiao") return carregaCorte(c);
+  const dados = await carregaAreas(unidade);
+  return [catalogoAreas(unidade, dados),
+          { type: "FeatureCollection", features: [] }];
+}
 async function trocaCorte(c) {
   corte = c;
-  const minhaChave = visao + ":" + c;
+  const minhaChave = visao + ":" + c + ":" + unidade;
   listaExpandida = false;
   for (const [id, k] of [["corte-menos", "menos"],
       ["corte-padrao", "padrao"], ["corte-mais", "mais"]])
     document.getElementById(id).classList.toggle("ativo", corte === k);
-  [REG, GEO] = await carregaCorte(c);
-  if (visao + ":" + corte !== minhaChave) return;  // troca rápida
+  [REG, GEO] = await carregaCatalogo(c);
+  if (visao + ":" + corte + ":" + unidade !== minhaChave) return;
+  if (unidade === "regiao" && REG.meta.stops_def)
+    STOPS_VISAO[visao] = REG.meta.stops_def;
   geoAtual = GEO;
   regiaoAtiva = null;
   $r.style.display = "none";
   montaIndices();
   if (mapa.getSource("regioes")) {
     mapa.getSource("regioes").setData(GEO);
-    mapa.getSource("regioes-pts").setData(badges(REG));
     mapa.getSource("veu").setData(GEO.features.length ? veuDe(GEO)
       : { type: "FeatureCollection", features: [] });
     mapa.setPaintProperty("regioes-ln", "line-width", 2.2);
     mapa.setPaintProperty("regioes-halo", "line-width", 4.5);
+    realcaArea(null);
   }
   pintaPainel();
   atualizaResumo();
   gravaHash();
+}
+// contorno da área ativa (município/distrito) vem do próprio tileset
+function realcaArea(r) {
+  for (const u of ["mun", "dist"]) {
+    const ativo = r && unidade === u;
+    const f = ["==", ["get", UNID[u].chave], ativo ? r.cd : "__nenhum__"];
+    for (const suf of ["halo", "ln"])
+      if (mapa.getLayer(`area-${u}-${suf}`))
+        mapa.setFilter(`area-${u}-${suf}`, f);
+  }
+}
+// fichas numeradas: no escopo Brasil valem as faixas por zoom (top 20 /
+// 60 / todas); em estado ou município mostram só o que está listado
+function atualizaChips(listados) {
+  if (!mapa.getSource("regioes-pts")) return;
+  const itens = listados || REG.regioes;
+  mapa.getSource("regioes-pts").setData(badges({ regioes: itens }));
+  const br = escopo.nivel === "br";
+  for (const [suf, maxN] of [["a", 20], ["b", 60], ["c", 9999]])
+    for (const pre of ["regioes-chip-", "regioes-n-"])
+      if (mapa.getLayer(pre + suf))
+        mapa.setFilter(pre + suf, br ? ["<=", ["get", "n"], maxN]
+                                     : ["boolean", true]);
 }
 function atualizaResumo() {
   const resumo = document.getElementById("cand-resumo");
@@ -627,26 +747,40 @@ function atualizaResumo() {
   const b2 = document.createElement("b");
   b2.textContent = REG.meta.n_regioes;
   const cob = `${Math.round(REG.meta.cobertura_regioes * 100)}% disso.`;
+  const por = unidade !== "regiao"
+    ? `, somados por ${UNID[unidade].um.toLowerCase()}. ` : ". ";
   if (visao === "voto")
     resumo.append("O 1º turno deixou ", b1,
-      " votos de Lula abaixo do esperado pelo modelo. As ", b2,
-      ` regiões deste corte concentram ` + cob);
+      " votos de Lula abaixo do esperado pelo modelo" + por);
   else if (visao === "abst")
     resumo.append("A abstenção acima da esperada custou ", b1,
-      " votos de Lula pelo modelo. As ", b2,
-      ` regiões deste corte (só onde Lula lidera) concentram ` + cob);
+      " votos de Lula pelo modelo" + por);
   else
     resumo.append("Lula teria ", b1, " votos a mais se mantivesse, " +
-      "onde caiu, a fatia do 1º turno de 2022. As ", b2,
+      "onde caiu, a fatia do 1º turno de 2022" + por);
+  if (unidade !== "regiao")
+    resumo.append(`Os 50 ${UNID[unidade].pl} do topo ` +
+      (visao === "abst" ? "(só onde Lula lidera) " : "") +
+      "concentram " + cob);
+  else if (visao === "voto")
+    resumo.append("As ", b2, ` regiões deste corte concentram ` + cob);
+  else if (visao === "abst")
+    resumo.append("As ", b2,
+      ` regiões deste corte (só onde Lula lidera) concentram ` + cob);
+  else
+    resumo.append("As ", b2,
       ` regiões deste corte (queda de ao menos ` +
       `${fmt(REG.meta.limiar_pp)} pontos) concentram ` + cob);
 }
 async function carrega() {
-  [[REG, GEO], MUNIS] = await Promise.all([
-    carregaCorte(corte),
-    (await fetch("dados/municipios.json")).json()]);
+  MUNIS = await (await fetch("dados/municipios.json")).json();
+  [REG, GEO] = await carregaCatalogo(corte);
   atualizaResumo();
   marcaVisao();
+  marcaUnidade();
+  for (const k of UNIDADES)
+    document.getElementById("unid-" + k).onclick = () =>
+      { if (unidade !== k) trocaUnidade(k); };
   for (const k of VISOES)
     document.getElementById("visao-" + k).onclick = () =>
       { if (visao !== k) trocaVisao(k); };
@@ -695,7 +829,15 @@ function setEscopo(novo, voa = true) {
     mapa.fitBounds([[-74, -33.8], [-34.8, 5.3]],
       { padding: 20, duration: 1100 });
   else if (novo.nivel === "uf") {
-    const b = REG.meta.bbox_uf && REG.meta.bbox_uf[novo.uf];
+    let b = REG.meta.bbox_uf && REG.meta.bbox_uf[novo.uf];
+    if (!b && MUNIS) {
+      const ms = MUNIS.filter(m => m[2] === novo.uf);
+      if (ms.length)
+        b = [Math.min(...ms.map(m => m[3])) - 0.3,
+             Math.min(...ms.map(m => m[4])) - 0.3,
+             Math.max(...ms.map(m => m[3])) + 0.3,
+             Math.max(...ms.map(m => m[4])) + 0.3];
+    }
     if (b) mapa.fitBounds([[b[0], b[1]], [b[2], b[3]]],
       { padding: window.innerWidth <= 600 ? 24 :
         { top: 40, bottom: 40, left: 400, right: 40 }, duration: 1100 });
@@ -845,22 +987,27 @@ function pintaPainel() {
   if (!REG) return;
   rotulosEscopo();
   const cob = document.getElementById("pr-cobertura");
+  const U = UNID[unidade];
   if (escopo.nivel === "br") {
     const lim = listaExpandida ? Infinity : 50;
     cob.textContent = listaExpandida ?
-      `${REG.meta.n_regioes} regiões` :
+      `${REG.meta.n_regioes} ${U.pl}` :
       `top 50 de ${REG.meta.n_regioes}`;
-    for (const r of REG.regioes.slice(0, lim))
-      lista.append(itemRegiao(r));
+    const rs = REG.regioes.slice(0, lim);
+    for (const r of rs) lista.append(itemRegiao(r));
     if (REG.regioes.length > 50 && !listaExpandida)
       botaoMostrarTodas(lista, REG.regioes.length - 50);
     document.getElementById("pr-nota").textContent =
-      `As 50 maiores regiões do país por ${MOEDA[visao]}. ` +
+      (unidade === "regiao"
+        ? `As 50 maiores regiões do país por ${MOEDA[visao]}. `
+        : `Os 50 ${U.pl} do país com mais ${MOEDA[visao]}. `) +
       "Perfis: Censo 2022 (≈ = estimativa por área de ponderação).";
+    atualizaChips(listaExpandida ? REG.regioes : rs);
   } else if (escopo.nivel === "uf") {
     const todos = REG.regioes.filter(r => r.uf === escopo.uf);
     const rs = todos.slice(0, listaExpandida ? Infinity : 25);
     cob.textContent = rs.length ? `${rs.length} de ${escopo.uf}` : "";
+    atualizaChips(rs);
     if (!rs.length)
       lista.append(aviso({
         voto: "O modelo não encontrou nenhuma área contígua em " +
@@ -873,8 +1020,12 @@ function pintaPainel() {
         swing: "Nenhuma área contígua em " +
           (UF_NOMES[escopo.uf] || escopo.uf) + " teve queda da fatia " +
           `de Lula de ao menos ${fmt(REG.meta.limiar_pp)} pontos desde ` +
-          "2022 somando votos acima do corte atual." }[visao],
-        "Nenhuma região em " + escopo.uf));
+          "2022 somando votos acima do corte atual." }[visao]
+        .replace("área contígua", unidade === "regiao" ? "área contígua"
+                 : U.um.toLowerCase())
+        .replace("região de", U.um.toLowerCase() + " de"),
+        `Nenhum${unidade === "regiao" ? "a" : ""} ${U.um.toLowerCase()} ` +
+        "em " + escopo.uf));
     else {
       rs.forEach((r, i) =>
         lista.append(itemRegiao(r, i + 1,
@@ -884,13 +1035,16 @@ function pintaPainel() {
         botaoMostrarTodas(lista, todos.length - 25);
     }
     document.getElementById("pr-nota").textContent = rs.length ?
-      "Regiões do estado, pela ordem nacional." : "";
+      `${U.um === "Região" ? "Regiões" : U.pl[0].toUpperCase() +
+        U.pl.slice(1)} do estado, pela ordem nacional.` : "";
   } else {
     const regsT = (munIndex.get(escopo.mun.cd) || []).slice()
       .sort((a, b) => b.conv - a.conv);
     const regs = regsT.slice(0, listaExpandida ? Infinity : 10);
     cob.textContent = regs.length ?
       `${regs.length} em ${escopo.mun.nm}` : "";
+    atualizaChips(regs.map(x => REG.regioes.find(q => q.n === x.n))
+                  .filter(Boolean));
     if (!regs.length) {
       lista.append(aviso({
         voto: "O modelo não encontrou nenhuma região de déficit de Lula ",
@@ -898,24 +1052,29 @@ function pintaPainel() {
           "excedente (com Lula liderando) ",
         swing: "Não há região de queda concentrada da fatia de Lula " +
           "desde 2022 " }[visao] +
-        "tocando " + escopo.mun.nm + ". Vale conferir a mancha do " +
-        "mapa mesmo assim: o sinal pode existir de forma dispersa, " +
-        "abaixo do limiar de região.",
+        (unidade === "regiao" ? "tocando " : "em ") + escopo.mun.nm +
+        ". Vale conferir a mancha do mapa mesmo assim: o sinal pode " +
+        "existir de forma dispersa" +
+        (unidade === "regiao" ? ", abaixo do limiar de região." : "."),
         "Nada em " + escopo.mun.nm));
       document.getElementById("pr-nota").textContent = "";
       return;
     }
     regs.forEach((x, i) => {
       const r = REG.regioes.find(q => q.n === x.n);
-      lista.append(itemRegiao(r, i + 1,
-        `nº ${r.n} do país · ≈ ${fmtMil(x.conv)} votos no município · ` +
-        `região com ${fmtMil(r.pop)} moradores`));
+      lista.append(itemRegiao(r, i + 1, unidade === "regiao"
+        ? `nº ${r.n} do país · ≈ ${fmtMil(x.conv)} votos no município · ` +
+          `região com ${fmtMil(r.pop)} moradores`
+        : `nº ${r.n} do país · ≈ ${fmtMil(x.conv)} votos · ` +
+          `${fmtMil(r.pop)} moradores`));
     });
     if (regsT.length > 10 && !listaExpandida)
       botaoMostrarTodas(lista, regsT.length - 10);
-    document.getElementById("pr-nota").textContent =
-      "Regiões que tocam o município, ordenadas pelos votos " +
-      (visao === "swing" ? "perdidos" : "de déficit") + " dentro dele.";
+    document.getElementById("pr-nota").textContent = unidade === "regiao"
+      ? "Regiões que tocam o município, ordenadas pelos votos " +
+        (visao === "swing" ? "perdidos" : "de déficit") + " dentro dele."
+      : unidade === "dist" ? "Distritos do município, ordenados pelos " +
+        "votos " + (visao === "swing" ? "perdidos." : "de déficit.") : "";
   }
 }
 
@@ -927,6 +1086,12 @@ function focaRegiao(r, btn, opts) {
     x.classList.remove("ativo"));
   if (btn) btn.classList.add("ativo");
   cardRegiao(r);
+  realcaArea(r);
+  if (unidade !== "regiao" && r.bb && !(opts && opts.semVoo))
+    mapa.fitBounds([[r.bb[0], r.bb[1]], [r.bb[2], r.bb[3]]],
+      { padding: window.innerWidth <= 600 ? 30 :
+        { top: 60, bottom: 60, left: 420, right: 60 },
+        duration: 1100, maxZoom: UNID[unidade].zmax });
   if (geoAtual && !(opts && opts.semVoo)) {
     const f = geoAtual.features.find(x => x.properties.n === r.n);
     if (f) {
@@ -976,7 +1141,7 @@ function cardRegiao(r) {
   const corpo = document.createElement("div");
   const rot = document.createElement("div");
   rot.className = "card-sec card-sec-1";
-  rot.textContent = `Região nº ${r.n} do país`;
+  rot.textContent = `${UNID[unidade].um} nº ${r.n} do país`;
   corpo.append(rot);
   const t = document.createElement("div");
   t.className = "card-titulo";
@@ -984,8 +1149,10 @@ function cardRegiao(r) {
   corpo.append(t);
   const sub = document.createElement("div");
   sub.className = "card-sub";
-  sub.textContent = `${r.muns.length} município` +
-    (r.muns.length > 1 ? "s" : "") + ` · ${fmtMil(r.pop)} moradores`;
+  sub.textContent = (unidade === "regiao"
+    ? `${r.muns.length} município` + (r.muns.length > 1 ? "s" : "")
+    : unidade === "dist" ? `distrito de ${r.mun_nm}`
+    : UF_NOMES[r.uf] || r.uf) + ` · ${fmtMil(r.pop)} moradores`;
   corpo.append(sub);
   const chave = document.createElement("div");
   chave.className = "card-conv";
@@ -1046,15 +1213,17 @@ function cardRegiao(r) {
       `${fmt(pf.ap_pct_sem_religiao)}% sem rel.`));
   if (pf.pct_urbano != null)
     corpo.append(kv("População urbana", fmt(pf.pct_urbano) + "%"));
-  corpo.append(secao(visao === "swing" ? "Municípios, por votos perdidos"
-                                        : "Municípios, por déficit"));
-  for (const m of r.muns.slice(0, 8))
-    corpo.append(kv(m.nm, "≈ " + fmtMil(m.conv)));
-  if (r.muns.length > 8) {
-    const dd = document.createElement("div");
-    dd.className = "card-sub";
-    dd.textContent = `e mais ${r.muns.length - 8} municípios.`;
-    corpo.append(dd);
+  if (unidade === "regiao") {
+    corpo.append(secao(visao === "swing" ? "Municípios, por votos perdidos"
+                                          : "Municípios, por déficit"));
+    for (const m of r.muns.slice(0, 8))
+      corpo.append(kv(m.nm, "≈ " + fmtMil(m.conv)));
+    if (r.muns.length > 8) {
+      const dd = document.createElement("div");
+      dd.className = "card-sub";
+      dd.textContent = `e mais ${r.muns.length - 8} municípios.`;
+      corpo.append(dd);
+    }
   }
   const nota = document.createElement("small");
   nota.textContent = {
@@ -1154,6 +1323,18 @@ mapa.on("load", async () => {
   mapa.addLayer({ id: "regioes-ln", type: "line", source: "regioes",
     paint: { "line-color": "#121212", "line-width": 2.2,
              "line-opacity": 0.95 } }, ancoraRot);
+  // realce do município/distrito ativo direto do tileset (sem geojson)
+  for (const u of ["mun", "dist"]) {
+    const f = ["==", ["get", UNID[u].chave], "__nenhum__"];
+    mapa.addLayer({ id: `area-${u}-halo`, type: "line", source: "dados",
+      "source-layer": UNID[u].camada, filter: f,
+      paint: { "line-color": "#ffffff", "line-width": 6.5,
+               "line-opacity": 0.75 } }, ancoraRot);
+    mapa.addLayer({ id: `area-${u}-ln`, type: "line", source: "dados",
+      "source-layer": UNID[u].camada, filter: f,
+      paint: { "line-color": "#121212", "line-width": 3.6,
+               "line-opacity": 0.95 } }, ancoraRot);
+  }
   // fichas numeradas em 3 faixas de zoom (nacional mostra só o topo)
   for (const [suf, zmin, zmax, maxN] of [
       ["a", 0, 5, 20], ["b", 5, 7, 60], ["c", 7, 24, 9999]]) {
@@ -1195,9 +1376,20 @@ mapa.on("click", e => {
   const capas = ["regioes-chip-a", "regioes-chip-b", "regioes-chip-c",
                  "regioes-fill"].filter(l => mapa.getLayer(l));
   const fs = mapa.queryRenderedFeatures(e.point, { layers: capas });
-  if (!fs.length) { $r.style.display = "none"; return; }
-  const r = REG.regioes.find(x => x.n === fs[0].properties.n);
-  if (r) focaRegiao(r, null, { semVoo: true });
+  if (fs.length) {
+    const r = REG.regioes.find(x => x.n === fs[0].properties.n);
+    if (r) focaRegiao(r, null, { semVoo: true });
+    return;
+  }
+  if (unidade !== "regiao") {
+    const U = UNID[unidade];
+    const fa = mapa.queryRenderedFeatures(e.point,
+      { layers: [U.camada + "-fill"] });
+    const r = fa.length &&
+      REG.regioes.find(x => x.cd === fa[0].properties[U.chave]);
+    if (r) { focaRegiao(r, null, { semVoo: true }); return; }
+  }
+  $r.style.display = "none";
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { $r.style.display = "none";

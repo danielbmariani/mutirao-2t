@@ -42,6 +42,13 @@ Três visões, com a mesma mecânica de regiões:
    distritos e municípios usam a soma de votos, em que a reatribuição se
    cancela. Script: `modelos/swing_lula_93.py` + `regioes/regioes_swing_94.py`.
 
+O seletor **Unidade** (13/10) escolhe a área em que os números são
+somados e ranqueados: **município** (padrão, 5.570), **distrito**
+censitário (10,7 mil) ou **região** (as manchas abaixo). Município e
+distrito usam a soma direta dos setores nas mesmas fórmulas das visões
+(`regioes/areas_95.py` → `site/dados/areas_{mun,dist}.json`, uma linha
+por área com as três moedas); o contorno vem do próprio tileset.
+
 As regiões são grupos contíguos de subdistritos censitários acima de um
 limiar de sinal e de volume, divididas em escala de agenda (até ~60 km),
 ranqueadas por votos absolutos, com três cortes pré-computados (menos,
@@ -75,10 +82,12 @@ https://sua-url/`.
 ```
 site/            o site pronto (index.html + dados pré-computados)
   dados/         regioes*.json/geojson (3 visões × 3 cortes),
+                 areas_mun.json / areas_dist.json (catálogos por unidade),
                  municipios.json (busca), regioes*.geojson (contornos)
 modelos/         modelo_lula_72.py (voto), modelo_abst_75.py (abstenção),
                  swing_lula_93.py (queda 2022→2026, sem modelo)
-regioes/         geradores de regiões das três visões
+regioes/         geradores de regiões das três visões + areas_95.py
+                 (catálogos por município e distrito)
 tiles/           gerador do tileset + uploader Mapbox
 dados_modelo/    SAÍDAS dos modelos por setor censitário (parquet):
                  permitem regenerar regiões e tiles sem o pipeline TSE
