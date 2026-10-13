@@ -138,7 +138,7 @@ def main():
     malha = gpd.read_parquet(PQ_SUB).set_index("CD_SUB")
     cent = malha.geometry.representative_point()
     total = bl.conv.sum()
-    print(f"{len(bl)} blocos; votos perdidos desde 2022 (soma das quedas) "
+    print(f"{len(bl)} blocos; votos perdidos em relação a 2022 (soma das quedas) "
           f"{total/1e6:.2f} mi", flush=True)
     piso = PISO_ABS
 

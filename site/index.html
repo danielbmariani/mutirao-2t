@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Mutirão do 2º turno: onde Lula ficou abaixo do esperado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="As regiões do Brasil onde Lula ficou abaixo do esperado no 1º turno de 2026, segundo um modelo que considera a eleição de 2022 e o perfil de cada lugar. Top 50 do país, por estado e por município, e a região mais próxima do seu endereço. Inclui a abstenção excedente e onde a fatia de Lula mais caiu desde 2022.">
+<meta name="description" content="As regiões do Brasil onde Lula ficou abaixo do esperado no 1º turno de 2026, segundo um modelo que considera a eleição de 2022 e o perfil de cada lugar. Top 50 do país, por estado e por município, e a região mais próxima do seu endereço. Inclui a abstenção excedente e onde a fatia de Lula mais caiu em relação a 2022.">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
 <script id="search-js" defer src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
@@ -277,7 +277,7 @@ addEventListener('DOMContentLoaded', function () {
   <div class="pr-abas" id="visao-abas" style="margin:0 0 8px">
     <button id="visao-voto" class="ativo">Votos que faltaram</button>
     <button id="visao-abst">Abstenção excedente</button>
-    <button id="visao-swing">Queda desde 2022</button>
+    <button id="visao-swing">Queda de 2022</button>
   </div>
   <div class="pr-corte" id="unidade-row" style="margin:0 0 8px">
     <span>Unidade</span>
@@ -368,7 +368,7 @@ addEventListener('DOMContentLoaded', function () {
     mais idiossincrática que o voto: o ajuste por setor é baixo
     (R² 0,29), mas no nível dos blocos usados pelas regiões sobe a
     0,62, e o ranking é estável entre execuções (0,976).</p>
-    <h3>A visão de queda desde 2022</h3>
+    <h3>A visão de queda de 2022</h3>
     <p>A terceira visão não usa modelo: compara diretamente a fatia de
     Lula no 1º turno de 2026 com a do 1º turno de 2022, no mesmo
     território, e pergunta quantos votos ele teria a mais se mantivesse
@@ -382,7 +382,7 @@ addEventListener('DOMContentLoaded', function () {
     (94% dos votos); nos subdistritos, distritos e municípios a
     comparação usa a soma de votos, em que essas trocas se cancelam. As
     três visões se complementam: a queda mostra onde Lula perdeu mais
-    terreno desde 2022; o déficit, onde ficou abaixo do que o perfil do
+    terreno em relação a 2022; o déficit, onde ficou abaixo do que o perfil do
     lugar e o próprio 2022 fariam esperar; a abstenção, onde a
     desmobilização explica a diferença.</p>
     <h3>As unidades</h3>
@@ -462,7 +462,7 @@ const TEXTO_UNIDADE = {
 // a "moeda" de cada visão, para listas e fichas
 const MOEDA = { voto: "votos abaixo do esperado",
                 abst: "votos perdidos para a abstenção",
-                swing: "votos perdidos desde 2022" };
+                swing: "votos perdidos em relação a 2022" };
 const UNIDADES = ["mun", "dist", "regiao"];
 const UNID = {
   mun: { um: "Município", pl: "municípios", chave: "CD_MUN",
@@ -1051,7 +1051,7 @@ function pintaPainel() {
         abst: "O modelo não encontrou nenhuma região de abstenção " +
           "excedente (com Lula liderando) ",
         swing: "Não há região de queda concentrada da fatia de Lula " +
-          "desde 2022 " }[visao] +
+          "em relação a 2022 " }[visao] +
         (unidade === "regiao" ? "tocando " : "em ") + escopo.mun.nm +
         ". Vale conferir a mancha do mapa mesmo assim: o sinal pode " +
         "existir de forma dispersa" +
@@ -1159,7 +1159,7 @@ function cardRegiao(r) {
   chave.textContent = {
     voto: `≈ ${fmtMil(r.conv)} votos de Lula abaixo do esperado`,
     abst: `≈ ${fmtMil(r.conv)} votos de Lula perdidos para a abstenção`,
-    swing: `≈ ${fmtMil(r.conv)} votos de Lula perdidos desde 2022` }[visao];
+    swing: `≈ ${fmtMil(r.conv)} votos de Lula perdidos em relação a 2022` }[visao];
   corpo.append(chave);
   if (visao === "swing") {
     corpo.append(secao("Fatia de Lula (1º turno)"));

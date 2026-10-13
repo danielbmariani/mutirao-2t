@@ -191,7 +191,7 @@ const ok = (cond, nome) => {
   ok(fichaAbst.includes("Abstenção") &&
      fichaAbst.includes("Ganho líquido"),
      "abst: ficha com abstenção e ganho líquido");
-  // ---------- visão QUEDA DESDE 2022 (13/10) ----------
+  // ---------- visão QUEDA DE 2022 (13/10) ----------
   await p.evaluate(() => document.getElementById("visao-swing").click());
   await new Promise(r => setTimeout(r, 2500));
   const nRegSwing = JSON.parse(require("fs").readFileSync(
@@ -218,14 +218,14 @@ const ok = (cond, nome) => {
   ok(temS, "swing: tiles trazem o atributo s nos municípios");
   ok(await p.evaluate(() =>
     document.querySelector("#pr-lista .reg .reg-meta").textContent
-      .includes("perdidos desde 2022")), "swing: lista usa a moeda certa");
+      .includes("perdidos em relação a 2022")), "swing: lista usa a moeda certa");
   await p.evaluate(() =>
     document.querySelector("#pr-lista .reg").click());
   await new Promise(r => setTimeout(r, 2200));
   const fichaSw = await p.evaluate(() =>
     document.getElementById("resultado").textContent);
   ok(fichaSw.includes("1º turno de 2022") && fichaSw.includes("Queda") &&
-     fichaSw.includes("perdidos desde 2022"),
+     fichaSw.includes("perdidos em relação a 2022"),
      "swing: ficha com 2022, queda e votos perdidos");
   ok(await p.evaluate(() => location.hash.includes("v=swing")),
      "swing: hash v=swing");

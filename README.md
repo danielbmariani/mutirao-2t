@@ -31,7 +31,7 @@ Três visões, com a mesma mecânica de regiões:
    excesso de abstenção × aptos × fatia de Lula. As regiões desta visão
    só aceitam áreas onde Lula lidera, porque reverter abstenção devolve
    votos de todos os lados; a ficha mostra também o ganho líquido.
-3. **Queda desde 2022** (13/10): sem modelo. Compara a fatia de Lula no
+3. **Queda de 2022** (13/10): sem modelo. Compara a fatia de Lula no
    1º turno de 2026 com a do 1º turno de 2022 no mesmo território;
    votos perdidos = queda em pontos × válidos de 2026 (quantos votos
    ele teria a mais se mantivesse a fatia de 2022 no eleitorado de

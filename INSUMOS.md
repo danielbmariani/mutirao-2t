@@ -15,7 +15,7 @@ contém está na Release ou em fonte pública com URL.
 | `shares_malha2022_2026_t1.parquet` | a repartição de cada local de votação entre os setores censitários (`share` = fração dos eleitores da urna atribuída ao setor; soma 1 por urna) — PEÇA-CHAVE desde 12/10/2026: com ela os modelos são retreináveis só com dados públicos do TSE (gerada por `modelos/distribuicao_85.py`) |
 | `relacao_malha2022_2026_t1_lv.parquet` | a relação anterior local → setor com distâncias (método do inverso da distância, até 12/10/2026; mantida para auditoria) |
 | `distritos_eleicao.parquet` | nomes e agregados eleitorais por distrito censitário (nomes das regiões) |
-| `setores_completo.{parquet,csv.gz}` | UMA linha por setor: real/esperado/déficit das visões de voto e abstenção, queda desde 2022 + região de interesse de cada visão |
+| `setores_completo.{parquet,csv.gz}` | UMA linha por setor: real/esperado/déficit das visões de voto e abstenção, queda de 2022 + região de interesse de cada visão |
 
 ## Na Release v1.1 deste repositório
 

@@ -1,6 +1,6 @@
 # Catálogos por UNIDADE DE ÁREA do site eleitores (13/10): município e
 # distrito censitário, com as três moedas (déficit vs esperado, abstenção
-# excedente, queda desde 2022) na mesma linha. Pedido do Daniel: poder
+# excedente, queda de 2022) na mesma linha. Pedido do Daniel: poder
 # escolher a unidade em vez de só ver as manchas agrupadas de setores
 # (regioes_*); o padrão do site passa a ser MUNICÍPIO.
 #
