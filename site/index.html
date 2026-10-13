@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Mutirão do 2º turno: onde Lula ficou abaixo do esperado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="As regiões do Brasil onde Lula ficou abaixo do esperado no 1º turno de 2026, segundo um modelo que considera a eleição de 2022 e o perfil de cada lugar. Top 50 do país, por estado e por município, e a região mais próxima do seu endereço.">
+<meta name="description" content="As regiões do Brasil onde Lula ficou abaixo do esperado no 1º turno de 2026, segundo um modelo que considera a eleição de 2022 e o perfil de cada lugar. Top 50 do país, por estado e por município, e a região mais próxima do seu endereço. Inclui a abstenção excedente e onde a fatia de Lula mais caiu desde 2022.">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
 <script id="search-js" defer src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
@@ -91,6 +91,8 @@
     cursor: pointer; border-radius: 7px; font-family: inherit;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pr-abas button.ativo { background: #121212; color: #fff; }
+  #visao-abas button { white-space: normal; line-height: 1.2;
+    font-size: 11.5px; padding: 6px 3px; }
   .pr-corte { display: flex; align-items: center; gap: 4px;
     margin: 0 8px 6px 0; font-size: 10.5px; color: #888; }
   .pr-corte span { margin-right: 2px; }
@@ -275,6 +277,7 @@ addEventListener('DOMContentLoaded', function () {
   <div class="pr-abas" id="visao-abas" style="margin:0 0 8px">
     <button id="visao-voto" class="ativo">Votos que faltaram</button>
     <button id="visao-abst">Abstenção excedente</button>
+    <button id="visao-swing">Queda desde 2022</button>
   </div>
   <div id="busca-box"><mapbox-search-box id="q" placeholder="Seu endereço: achamos a região mais próxima"></mapbox-search-box></div>
   <p id="cand-resumo"></p>
@@ -359,6 +362,23 @@ addEventListener('DOMContentLoaded', function () {
     mais idiossincrática que o voto: o ajuste por setor é baixo
     (R² 0,29), mas no nível dos blocos usados pelas regiões sobe a
     0,62, e o ranking é estável entre execuções (0,976).</p>
+    <h3>A visão de queda desde 2022</h3>
+    <p>A terceira visão não usa modelo: compara diretamente a fatia de
+    Lula no 1º turno de 2026 com a do 1º turno de 2022, no mesmo
+    território, e pergunta quantos votos ele teria a mais se mantivesse
+    a fatia de 2022 no eleitorado de hoje (queda em pontos × votos
+    válidos de 2026). No país a fatia caiu de 48,4% para 45,2%, 3,3
+    pontos; a visão realça onde a queda foi bem maior que isso: viram
+    região os grupos contíguos de subdistritos onde Lula caiu ao menos
+    6 pontos e que somam ao menos 2 mil votos perdidos. Como a passagem
+    de urna para setor muda quando o TSE reorganiza locais de votação,
+    o mapa só pinta setores com atribuição estável entre os dois anos
+    (94% dos votos); nos subdistritos, distritos e municípios a
+    comparação usa a soma de votos, em que essas trocas se cancelam. As
+    três visões se complementam: a queda mostra onde Lula perdeu mais
+    terreno desde 2022; o déficit, onde ficou abaixo do que o perfil do
+    lugar e o próprio 2022 fariam esperar; a abstenção, onde a
+    desmobilização explica a diferença.</p>
     <h3>As regiões</h3>
     <p>Blocos são subdistritos censitários (11,3 mil no país); viram
     região os grupos contíguos onde Lula ficou ao menos 1 ponto abaixo
@@ -385,7 +405,7 @@ addEventListener('DOMContentLoaded', function () {
 
 <script>
 const TOKEN = "COLOQUE_AQUI_SEU_TOKEN_PUBLICO_MAPBOX";
-const TILESET_ID = "danielbmariani.lula_deficit_2026_v4";
+const TILESET_ID = "danielbmariani.lula_deficit_2026_v5";
 mapboxgl.accessToken = TOKEN;
 
 const fmt = x => (x == null ? "s/d" :
@@ -404,18 +424,34 @@ const semAcento = t => (t || "").normalize("NFD")
 // ---------- estado + hash (#r=12&p=lon,lat,z) ----------
 let REG = null, GEO = null, regiaoAtiva = null;
 let corte = "padrao";          // menos | padrao | mais
-let visao = "voto";            // voto | abst
+let visao = "voto";            // voto | abst | swing
 let listaExpandida = false;    // "mostrar todas" do escopo atual
 const cacheCorte = {};
 const ARQ_CORTE = { menos: "_menos", padrao: "", mais: "_mais" };
-const PREF_VISAO = { voto: "regioes", abst: "regioes_abst" };
+const VISOES = ["voto", "abst", "swing"];
+const PREF_VISAO = { voto: "regioes", abst: "regioes_abst",
+                     swing: "regioes_swing" };
+const ATTR_VISAO = { voto: "d", abst: "a", swing: "s" };
+const TEXTO_UNIDADE = {
+  voto: "Regiões onde Lula ficou abaixo do esperado no 1º turno de " +
+        "2026, segundo modelo que considera a eleição de 2022 e o " +
+        "perfil de cada lugar.",
+  abst: "Regiões onde a abstenção de 2026 superou a esperada e Lula " +
+        "lidera: votos que a mobilização pode devolver às urnas.",
+  swing: "Regiões onde a fatia de Lula mais caiu entre o 1º turno de " +
+         "2022 e o de 2026: comparação direta com a eleição passada, " +
+         "sem modelo." };
+// a "moeda" de cada visão, para listas e fichas
+const MOEDA = { voto: "votos abaixo do esperado",
+                abst: "votos perdidos para a abstenção",
+                swing: "votos perdidos desde 2022" };
 let aba = "br", ufSel = "", munSel = null;
 
 function leHash() {
   const h = new URLSearchParams(location.hash.slice(1));
   const out = {};
   if (["menos", "mais"].includes(h.get("s"))) out.s = h.get("s");
-  if (h.get("v") === "abst") out.v = "abst";
+  if (["abst", "swing"].includes(h.get("v"))) out.v = h.get("v");
   if (h.get("r") && isFinite(+h.get("r"))) out.r = +h.get("r");
   const p = (h.get("p") || "").split(",");
   if (p.length === 3 && p.every(x => isFinite(+x)))
@@ -454,7 +490,7 @@ mapa.on("moveend", gravaHash);
 const CORES_TAXA = ["#f4f2ea", "#c5d8d6", "#88b1b2",
                     "#4b8188", "#1d4f57"];
 const sobe = st => st.map((v, i) => v + i * 1e-3);
-const attrVisao = () => visao === "voto" ? "d" : "a";
+const attrVisao = () => ATTR_VISAO[visao];
 const escalaDeficit = () => {
   const st = sobe((REG && REG.meta.stops_def) || [-4, -1, 0, 1, 4]);
   return ["case",
@@ -495,7 +531,11 @@ function legenda() {
   const tick = document.createElement("span");
   tick.className = "tick"; tick.style.left = "50%";
   bar.append(tick);
-  const pp = v => (v > 0 ? "+" : "") + fmt(v);
+  // na queda o atributo é positivo quando Lula PERDEU fatia: a legenda
+  // mostra a variação da fatia dele (−11 = caiu 11 pontos)
+  const pp = v => visao === "swing"
+    ? (v > 0 ? "−" : "+") + fmt(Math.abs(v))
+    : (v > 0 ? "+" : "") + fmt(v);
   const a = document.createElement("span");
   a.textContent = pp(st[0]);
   const b = document.createElement("span");
@@ -504,11 +544,14 @@ function legenda() {
   el.append(ramp);
   const nt = document.createElement("div");
   nt.className = "legenda-nota";
-  nt.textContent = visao === "voto"
-    ? "Mais escuro = Lula mais abaixo do esperado pelo modelo (2022 + " +
-      "perfil do lugar); o traço marca a mediana nacional."
-    : "Mais escuro = abstenção mais acima da esperada pelo modelo " +
-      "(histórico + perfil); o traço marca a mediana nacional.";
+  nt.textContent = {
+    voto: "Mais escuro = Lula mais abaixo do esperado pelo modelo " +
+          "(2022 + perfil do lugar); o traço marca a mediana nacional.",
+    abst: "Mais escuro = abstenção mais acima da esperada pelo modelo " +
+          "(histórico + perfil); o traço marca a mediana nacional.",
+    swing: "Mais escuro = fatia de Lula caiu mais entre o 1º turno de " +
+           "2022 e o de 2026; o traço marca a mediana nacional. Cinza = " +
+           "sem comparação (locais de votação reorganizados)." }[visao];
   el.append(nt);
 }
 
@@ -539,18 +582,15 @@ async function carregaCorte(c) {
   }
   return cacheCorte[k];
 }
+function marcaVisao() {
+  for (const k of VISOES)
+    document.getElementById("visao-" + k).classList.toggle(
+      "ativo", visao === k);
+  document.getElementById("unidade-txt").textContent = TEXTO_UNIDADE[visao];
+}
 async function trocaVisao(v) {
   visao = v;
-  document.getElementById("visao-voto").classList.toggle(
-    "ativo", v === "voto");
-  document.getElementById("visao-abst").classList.toggle(
-    "ativo", v === "abst");
-  document.getElementById("unidade-txt").textContent = v === "voto"
-    ? "Regiões onde Lula ficou abaixo do esperado no 1º turno de " +
-      "2026, segundo modelo que considera a eleição de 2022 e o " +
-      "perfil de cada lugar."
-    : "Regiões onde a abstenção de 2026 superou a esperada e Lula " +
-      "lidera: votos que a mobilização pode devolver às urnas.";
+  marcaVisao();
   await trocaCorte(corte);
   pinta();
 }
@@ -586,34 +626,30 @@ function atualizaResumo() {
   b1.textContent = "≈ " + fmtMil(REG.meta.total_deficit);
   const b2 = document.createElement("b");
   b2.textContent = REG.meta.n_regioes;
+  const cob = `${Math.round(REG.meta.cobertura_regioes * 100)}% disso.`;
   if (visao === "voto")
     resumo.append("O 1º turno deixou ", b1,
       " votos de Lula abaixo do esperado pelo modelo. As ", b2,
-      ` regiões deste corte concentram ` +
-      `${Math.round(REG.meta.cobertura_regioes * 100)}% disso.`);
-  else
+      ` regiões deste corte concentram ` + cob);
+  else if (visao === "abst")
     resumo.append("A abstenção acima da esperada custou ", b1,
       " votos de Lula pelo modelo. As ", b2,
-      ` regiões deste corte (só onde Lula lidera) concentram ` +
-      `${Math.round(REG.meta.cobertura_regioes * 100)}% disso.`);
+      ` regiões deste corte (só onde Lula lidera) concentram ` + cob);
+  else
+    resumo.append("Lula teria ", b1, " votos a mais se mantivesse, " +
+      "onde caiu, a fatia do 1º turno de 2022. As ", b2,
+      ` regiões deste corte (queda de ao menos ` +
+      `${fmt(REG.meta.limiar_pp)} pontos) concentram ` + cob);
 }
 async function carrega() {
   [[REG, GEO], MUNIS] = await Promise.all([
     carregaCorte(corte),
     (await fetch("dados/municipios.json")).json()]);
   atualizaResumo();
-  document.getElementById("visao-voto").classList.toggle(
-    "ativo", visao === "voto");
-  document.getElementById("visao-abst").classList.toggle(
-    "ativo", visao === "abst");
-  document.getElementById("visao-voto").onclick = () =>
-    { if (visao !== "voto") trocaVisao("voto"); };
-  document.getElementById("visao-abst").onclick = () =>
-    { if (visao !== "abst") trocaVisao("abst"); };
-  if (visao === "abst")
-    document.getElementById("unidade-txt").textContent =
-      "Regiões onde a abstenção de 2026 superou a esperada e Lula " +
-      "lidera: votos que a mobilização pode devolver às urnas.";
+  marcaVisao();
+  for (const k of VISOES)
+    document.getElementById("visao-" + k).onclick = () =>
+      { if (visao !== k) trocaVisao(k); };
   for (const [id, k] of [["corte-menos", "menos"],
       ["corte-padrao", "padrao"], ["corte-mais", "mais"]]) {
     const b = document.getElementById(id);
@@ -770,7 +806,7 @@ function itemRegiao(r, rank, sub) {
   const meta = document.createElement("div");
   meta.className = "reg-meta";
   meta.textContent = sub ??
-    `≈ ${fmtMil(r.conv)} votos abaixo do esperado · ` +
+    `≈ ${fmtMil(r.conv)} ${MOEDA[visao]} · ` +
     `${fmtMil(r.pop)} moradores`;
   const perfil = document.createElement("div");
   perfil.className = "reg-perfil";
@@ -819,22 +855,25 @@ function pintaPainel() {
     if (REG.regioes.length > 50 && !listaExpandida)
       botaoMostrarTodas(lista, REG.regioes.length - 50);
     document.getElementById("pr-nota").textContent =
-      "As 50 maiores regiões do país por votos de Lula abaixo do " +
-      "esperado. Perfis: Censo 2022 (≈ = estimativa por área de " +
-      "ponderação).";
+      `As 50 maiores regiões do país por ${MOEDA[visao]}. ` +
+      "Perfis: Censo 2022 (≈ = estimativa por área de ponderação).";
   } else if (escopo.nivel === "uf") {
     const todos = REG.regioes.filter(r => r.uf === escopo.uf);
     const rs = todos.slice(0, listaExpandida ? Infinity : 25);
     cob.textContent = rs.length ? `${rs.length} de ${escopo.uf}` : "";
     if (!rs.length)
-      lista.append(aviso(visao === "voto"
-        ? "O modelo não encontrou nenhuma área contígua em " +
+      lista.append(aviso({
+        voto: "O modelo não encontrou nenhuma área contígua em " +
           (UF_NOMES[escopo.uf] || escopo.uf) + " onde faltem votos a " +
-          "Lula em relação ao esperado acima do corte atual."
-        : "O modelo não encontrou nenhuma área contígua em " +
+          "Lula em relação ao esperado acima do corte atual.",
+        abst: "O modelo não encontrou nenhuma área contígua em " +
           (UF_NOMES[escopo.uf] || escopo.uf) + " com abstenção acima " +
           "da esperada em que Lula lidere: mobilizar onde ele perde " +
           "devolveria mais voto ao adversário.",
+        swing: "Nenhuma área contígua em " +
+          (UF_NOMES[escopo.uf] || escopo.uf) + " teve queda da fatia " +
+          `de Lula de ao menos ${fmt(REG.meta.limiar_pp)} pontos desde ` +
+          "2022 somando votos acima do corte atual." }[visao],
         "Nenhuma região em " + escopo.uf));
     else {
       rs.forEach((r, i) =>
@@ -853,10 +892,12 @@ function pintaPainel() {
     cob.textContent = regs.length ?
       `${regs.length} em ${escopo.mun.nm}` : "";
     if (!regs.length) {
-      lista.append(aviso((visao === "voto"
-        ? "O modelo não encontrou nenhuma região de déficit de Lula "
-        : "O modelo não encontrou nenhuma região de abstenção " +
-          "excedente (com Lula liderando) ") +
+      lista.append(aviso({
+        voto: "O modelo não encontrou nenhuma região de déficit de Lula ",
+        abst: "O modelo não encontrou nenhuma região de abstenção " +
+          "excedente (com Lula liderando) ",
+        swing: "Não há região de queda concentrada da fatia de Lula " +
+          "desde 2022 " }[visao] +
         "tocando " + escopo.mun.nm + ". Vale conferir a mancha do " +
         "mapa mesmo assim: o sinal pode existir de forma dispersa, " +
         "abaixo do limiar de região.",
@@ -873,8 +914,8 @@ function pintaPainel() {
     if (regsT.length > 10 && !listaExpandida)
       botaoMostrarTodas(lista, regsT.length - 10);
     document.getElementById("pr-nota").textContent =
-      "Regiões que tocam o município, ordenadas pelos votos de " +
-      "déficit dentro dele.";
+      "Regiões que tocam o município, ordenadas pelos votos " +
+      (visao === "swing" ? "perdidos" : "de déficit") + " dentro dele.";
   }
 }
 
@@ -948,11 +989,20 @@ function cardRegiao(r) {
   corpo.append(sub);
   const chave = document.createElement("div");
   chave.className = "card-conv";
-  chave.textContent = visao === "voto"
-    ? `≈ ${fmtMil(r.conv)} votos de Lula abaixo do esperado`
-    : `≈ ${fmtMil(r.conv)} votos de Lula perdidos para a abstenção`;
+  chave.textContent = {
+    voto: `≈ ${fmtMil(r.conv)} votos de Lula abaixo do esperado`,
+    abst: `≈ ${fmtMil(r.conv)} votos de Lula perdidos para a abstenção`,
+    swing: `≈ ${fmtMil(r.conv)} votos de Lula perdidos desde 2022` }[visao];
   corpo.append(chave);
-  if (visao === "voto") {
+  if (visao === "swing") {
+    corpo.append(secao("Fatia de Lula (1º turno)"));
+    corpo.append(kv("1º turno de 2022", fmt(r.l22) + "%"));
+    corpo.append(kv("1º turno de 2026", fmt(r.pl) + "%"));
+    const q = r.l22 - r.pl;
+    corpo.append(kv("Queda", (q > 0 ? "−" : "+") + fmt(Math.abs(q)) +
+      " p.p."));
+    corpo.append(kv("Votos válidos em 2026", fmtMil(r.validos)));
+  } else if (visao === "voto") {
     corpo.append(secao("Votação de Lula"));
     corpo.append(kv("2º turno de 2022", fmt(r.l22) + "%"));
     corpo.append(kv("1º turno de 2026 (real)", fmt(r.pl) + "%"));
@@ -996,7 +1046,8 @@ function cardRegiao(r) {
       `${fmt(pf.ap_pct_sem_religiao)}% sem rel.`));
   if (pf.pct_urbano != null)
     corpo.append(kv("População urbana", fmt(pf.pct_urbano) + "%"));
-  corpo.append(secao("Municípios, por déficit"));
+  corpo.append(secao(visao === "swing" ? "Municípios, por votos perdidos"
+                                        : "Municípios, por déficit"));
   for (const m of r.muns.slice(0, 8))
     corpo.append(kv(m.nm, "≈ " + fmtMil(m.conv)));
   if (r.muns.length > 8) {
@@ -1006,13 +1057,16 @@ function cardRegiao(r) {
     corpo.append(dd);
   }
   const nota = document.createElement("small");
-  nota.textContent = visao === "voto"
-    ? "Déficit = votos que faltaram a Lula em relação ao esperado por " +
-      "modelo que considera 2022 e o perfil do lugar (ver " +
-      "metodologia); medida de território, não de pessoas."
-    : "Abstenção esperada vem de modelo com o histórico 2018-2022 e o " +
-      "perfil do lugar; votos perdidos = excesso × aptos × fatia de " +
-      "Lula. Regiões só onde Lula lidera (ver metodologia).";
+  nota.textContent = {
+    voto: "Déficit = votos que faltaram a Lula em relação ao esperado " +
+      "por modelo que considera 2022 e o perfil do lugar (ver " +
+      "metodologia); medida de território, não de pessoas.",
+    abst: "Abstenção esperada vem de modelo com o histórico 2018-2022 e " +
+      "o perfil do lugar; votos perdidos = excesso × aptos × fatia de " +
+      "Lula. Regiões só onde Lula lidera (ver metodologia).",
+    swing: "Queda = fatia de Lula no 1º turno de 2022 menos a de 2026, " +
+      "no mesmo território; votos perdidos = queda × válidos de 2026. " +
+      "Comparação direta, sem modelo (ver metodologia)." }[visao];
   corpo.append(nota);
   $r.append(corpo);
   $r.style.display = "block";

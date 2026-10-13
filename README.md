@@ -1,8 +1,9 @@
 # Mutirão do 2º turno: onde Lula ficou abaixo do esperado
 
 Mapa interativo com as regiões do Brasil onde Lula ficou abaixo do
-esperado no 1º turno de 2026, por dois caminhos: migração de voto e
-abstenção acima da esperada. Feito para orientar o esforço de campanha
+esperado no 1º turno de 2026, por três caminhos: migração de voto,
+abstenção acima da esperada e queda da fatia dele em relação ao 1º turno
+de 2022. Feito para orientar o esforço de campanha
 entre os turnos (o 2º turno é em 25/10/2026).
 
 Versão de referência no ar: https://mutirao-2t.vercel.app
@@ -13,7 +14,7 @@ pessoa possa entender e reproduzir os modelos.
 
 ## O que o site mostra
 
-Duas visões, com a mesma mecânica:
+Três visões, com a mesma mecânica de regiões:
 
 1. **Votos que faltaram**: um modelo prevê o voto esperado de Lula em
    cada um dos 468 mil setores censitários a partir da eleição de 2022
@@ -30,6 +31,16 @@ Duas visões, com a mesma mecânica:
    excesso de abstenção × aptos × fatia de Lula. As regiões desta visão
    só aceitam áreas onde Lula lidera, porque reverter abstenção devolve
    votos de todos os lados; a ficha mostra também o ganho líquido.
+3. **Queda desde 2022** (13/10): sem modelo. Compara a fatia de Lula no
+   1º turno de 2026 com a do 1º turno de 2022 no mesmo território;
+   votos perdidos = queda em pontos × válidos de 2026 (quantos votos
+   ele teria a mais se mantivesse a fatia de 2022 no eleitorado de
+   hoje). No país a fatia caiu de 48,4% para 45,2%; a visão realça onde
+   a queda foi bem maior (regiões: ao menos 6 pontos e 2 mil votos no
+   corte padrão). Setores só recebem queda quando a atribuição de locais
+   de votação é estável entre os dois anos (94% dos votos); subdistritos,
+   distritos e municípios usam a soma de votos, em que a reatribuição se
+   cancela. Script: `modelos/swing_lula_93.py` + `regioes/regioes_swing_94.py`.
 
 As regiões são grupos contíguos de subdistritos censitários acima de um
 limiar de sinal e de volume, divididas em escala de agenda (até ~60 km),
@@ -45,9 +56,9 @@ O site é 100% estático. Três passos:
 1. **Conta Mapbox própria** (o mapa usa tiles vetoriais do Mapbox):
    crie um token público (pk) restrito ao seu domínio, e um token
    secreto (sk) com escopo de uploads.
-2. **Tileset**: baixe o arquivo `mapa_lula_v4.mbtiles` da
+2. **Tileset**: baixe o arquivo `mapa_lula_v5.mbtiles` da
    [Release v1.1 deste repositório](../../releases) e suba para a sua conta:
-   `python tiles/upload_mapbox_35.py mapa_lula_v4.mbtiles SEU_TILESET
+   `python tiles/upload_mapbox_35.py mapa_lula_v5.mbtiles SEU_TILESET
    "Nome"` (o script lê o sk de um arquivo; ajuste o caminho no topo).
    Alternativa: Mapbox Studio aceita o upload manual do mbtiles.
 3. **Site**: em `site/index.html`, troque as constantes `TOKEN` (seu
@@ -63,10 +74,11 @@ https://sua-url/`.
 
 ```
 site/            o site pronto (index.html + dados pré-computados)
-  dados/         regioes*.json/geojson (2 visões × 3 cortes),
+  dados/         regioes*.json/geojson (3 visões × 3 cortes),
                  municipios.json (busca), regioes*.geojson (contornos)
-modelos/         modelo_lula_72.py (voto), modelo_abst_75.py (abstenção)
-regioes/         geradores de regiões das duas visões
+modelos/         modelo_lula_72.py (voto), modelo_abst_75.py (abstenção),
+                 swing_lula_93.py (queda 2022→2026, sem modelo)
+regioes/         geradores de regiões das três visões
 tiles/           gerador do tileset + uploader Mapbox
 dados_modelo/    SAÍDAS dos modelos por setor censitário (parquet):
                  permitem regenerar regiões e tiles sem o pipeline TSE
@@ -113,10 +125,12 @@ blocos onde Lula lidera.
 ## Usar os dados e os modelos direto (Python e R)
 
 `dados_modelo/setores_completo.{parquet,csv.gz}` tem UMA linha por
-setor censitário (468 mil) com: real, esperado e déficit das duas
-visões, válidos/aptos e, quando o setor pertence a uma região de
-interesse do corte padrão, o número dela (`regiao_voto`,
-`regiao_abstencao`). Os modelos treinados estão em
+setor censitário (468 mil) com: real, esperado e déficit das visões
+de voto e abstenção, fatia de Lula em 2022 e 2026 e a queda entre elas
+(`queda_2022_2026_pp`, `votos_perdidos_desde_2022`, só onde
+`comparacao_estavel`), válidos/aptos e, quando o setor pertence a uma
+região de interesse do corte padrão, o número dela (`regiao_voto`,
+`regiao_abstencao`, `regiao_queda`). Os modelos treinados estão em
 `modelos/treinados/*.joblib` (scikit-learn; versão em `META.json`; a
 predição da abstenção é a média do ensemble de 4). Exemplos prontos de
 carga em `exemplos/carregar.py` e `exemplos/carregar.R` (R via

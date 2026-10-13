@@ -1,6 +1,11 @@
 # Tileset do site eleitores — déficit NACIONAL de Lula (modelo_lula_72):
-# um único atributo d (pp x10, com sinal) por setor/distrito/município +
-# identificação. Bandas idênticas aos tilesets aliados.
+# atributos por setor/distrito/município (todos pp x10, com sinal):
+#   d = déficit vs esperado (modelo_lula_72)
+#   a = excesso de abstenção (modelo_abst_75)
+#   s = queda da fatia de Lula 2022 t1 -> 2026 t1 (swing_lula_93; 13/10):
+#       no setor só quando delta_estavel; distrito/município pela soma de
+#       votos de todos os setores (a reatribuição de locais se cancela)
+# + identificação. Bandas idênticas aos tilesets aliados.
 import json
 import sqlite3
 import subprocess
@@ -20,7 +25,8 @@ PQ_DEF = DADOS / "processados/eleitores/setor_deficit_lula.parquet"
 PQ_ABS = DADOS / "processados/eleitores/setor_abst_lula.parquet"
 GJ_MUN = DIR_TILES / "municipios_v8r.geojsonl"
 GJ_DIST = DIR_TILES / "distritos_v8r.geojsonl"
-SAIDA = DIR_TILES / "mapa_lula_v4.mbtiles"  # v4 12/10 noite = distribuição conservativa; v3 = abstenção com biometria
+PQ_SW = DADOS / "processados/eleitores/setor_swing_lula.parquet"
+SAIDA = DIR_TILES / "mapa_lula_v5.mbtiles"  # v5 13/10 = +atributo s (queda 22->26); v4 = conservativa; v3 = abstenção c/ biometria
 
 
 def tp(args):
@@ -45,7 +51,22 @@ def main():
                       sum(aptos)) AS INT) AS a
           FROM '{PQ_ABS}' GROUP BY 1
         """).df().set_index(chave)
-        return v.join(a, how="outer")
+        if chave == "CD_SETOR":
+            sw_sql = f"""
+              SELECT CD_SETOR, CAST(round(10 * queda_pp) AS INT) AS s
+              FROM '{PQ_SW}' WHERE estavel AND queda_pp IS NOT NULL"""
+        else:
+            sw_sql = f"""
+              SELECT {chave_sql} AS {chave},
+                     CAST(round(10 * (
+                       sum(lula22t1 * validos22) / sum(validos22) -
+                       sum(lula26t1 * validos) / sum(validos))) AS INT) AS s
+              FROM '{PQ_SW}'
+              WHERE validos22 > 0 AND validos > 0
+                AND lula22t1 IS NOT NULL AND lula26t1 IS NOT NULL
+              GROUP BY 1"""
+        sw = con.sql(sw_sql).df().set_index(chave)
+        return v.join(a, how="outer").join(sw, how="outer")
 
     set_at = agg("CD_SETOR", "CD_SETOR")
     dist_at = agg("substr(CD_SETOR, 1, 9)", "CD_DIST")
@@ -91,9 +112,9 @@ def main():
     meta = dict(db.execute("SELECT name, value FROM metadata").fetchall())
     vl = {l["id"]: set(l["fields"]) for l in
           json.loads(meta["json"])["vector_layers"]}
-    for cam, extra in [("municipios", {"d", "a", "CD_MUN", "NM_MUN"}),
-                       ("distritos", {"d", "a", "CD_DIST", "NM_DIST"}),
-                       ("setores", {"d", "a", "CD_SETOR"})]:
+    for cam, extra in [("municipios", {"d", "a", "s", "CD_MUN", "NM_MUN"}),
+                       ("distritos", {"d", "a", "s", "CD_DIST", "NM_DIST"}),
+                       ("setores", {"d", "a", "s", "CD_SETOR"})]:
         falta = extra - vl.get(cam, set())
         assert not falta, f"GATE metadata: faltam em {cam}: {falta}"
     pior = db.execute("SELECT max(length(tile_data)) FROM tiles"

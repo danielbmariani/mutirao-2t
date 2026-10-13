@@ -135,6 +135,64 @@ const ok = (cond, nome) => {
   ok(fichaAbst.includes("Abstenção") &&
      fichaAbst.includes("Ganho líquido"),
      "abst: ficha com abstenção e ganho líquido");
+  // ---------- visão QUEDA DESDE 2022 (13/10) ----------
+  await p.evaluate(() => document.getElementById("visao-swing").click());
+  await new Promise(r => setTimeout(r, 2500));
+  const nRegSwing = JSON.parse(require("fs").readFileSync(
+    __dirname + "/dados/regioes_swing.json", "utf8")).meta.n_regioes;
+  ok(await p.evaluate(n => REG.meta.n_regioes === n, nRegSwing),
+     `swing: conjunto próprio carregado (${nRegSwing})`);
+  ok(await p.evaluate(() =>
+    document.getElementById("cand-resumo").textContent
+      .includes("fatia do 1º turno de 2022")), "swing: resumo adaptado");
+  ok(await p.evaluate(() => JSON.stringify(
+    mapa.getPaintProperty("municipios-fill", "fill-color"))
+      .includes('"s"')), "swing: mapa pinta pelo atributo s");
+  ok(await p.evaluate(() =>
+    document.getElementById("legenda").textContent.includes("−") &&
+    document.getElementById("legenda").textContent.includes("2022")),
+    "swing: legenda com sinal de queda e nota própria");
+  // o tileset precisa trazer s (v5): sem isso a visão fica cinza
+  const temS = await p.evaluate(() => {
+    const fs = mapa.querySourceFeatures("dados",
+      { sourceLayer: "municipios" });
+    return fs.length > 50 &&
+      fs.filter(f => f.properties.s != null).length / fs.length > 0.9;
+  });
+  ok(temS, "swing: tiles trazem o atributo s nos municípios");
+  ok(await p.evaluate(() =>
+    document.querySelector("#pr-lista .reg .reg-meta").textContent
+      .includes("perdidos desde 2022")), "swing: lista usa a moeda certa");
+  await p.evaluate(() =>
+    document.querySelector("#pr-lista .reg").click());
+  await new Promise(r => setTimeout(r, 2200));
+  const fichaSw = await p.evaluate(() =>
+    document.getElementById("resultado").textContent);
+  ok(fichaSw.includes("1º turno de 2022") && fichaSw.includes("Queda") &&
+     fichaSw.includes("perdidos desde 2022"),
+     "swing: ficha com 2022, queda e votos perdidos");
+  ok(await p.evaluate(() => location.hash.includes("v=swing")),
+     "swing: hash v=swing");
+  // UF sem região nesta visão deve mostrar o aviso próprio
+  const ufVazia = await p.evaluate(() => {
+    const comReg = new Set(REG.regioes.map(r => r.uf));
+    return Object.keys(UF_NOMES).find(u => !comReg.has(u)) || null;
+  });
+  if (ufVazia) {
+    await p.evaluate(() => document.getElementById("esc-uf").click());
+    await new Promise(r => setTimeout(r, 300));
+    await p.evaluate(u =>
+      [...document.querySelectorAll("#escopo-sug .sug")]
+        .find(x => x.textContent.includes(`(${u})`))
+        .dispatchEvent(new Event("mousedown")), ufVazia);
+    await new Promise(r => setTimeout(r, 1500));
+    ok(await p.evaluate(() =>
+      (document.querySelector(".pr-aviso") || {}).textContent
+        ?.includes("queda da fatia")),
+      `swing: aviso próprio de UF vazia (${ufVazia})`);
+    await p.evaluate(() => document.getElementById("esc-br").click());
+    await new Promise(r => setTimeout(r, 1200));
+  } else console.log("INFO swing: todas as UFs têm região");
   await p.evaluate(() => document.getElementById("visao-voto").click());
   await new Promise(r => setTimeout(r, 2200));
   // nº de regiões do corte padrão lido do JSON publicado (era 132 fixo —
@@ -156,6 +214,23 @@ const ok = (cond, nome) => {
   ok(erros2.length === 0,
      "hash: sem pageerrors (" + erros2.join(";") + ")");
   await p2.close();
+  // abertura direta na 3ª visão com corte Menos
+  const p3 = await b.newPage();
+  const erros3 = [];
+  p3.on("pageerror", e => erros3.push(e.message.slice(0,80)));
+  await p3.goto(URL.replace(/#.*/, "") + "#v=swing&s=menos",
+                { waitUntil: "networkidle2", timeout: 90000 });
+  await new Promise(r => setTimeout(r, 7000));
+  const nSwMenos = JSON.parse(require("fs").readFileSync(
+    __dirname + "/dados/regioes_swing_menos.json", "utf8")).meta.n_regioes;
+  ok(await p3.evaluate(n => REG && REG.meta.n_regioes === n, nSwMenos),
+     `hash v=swing&s=menos: conjunto certo na abertura (${nSwMenos})`);
+  ok(await p3.evaluate(() =>
+    document.getElementById("visao-swing").classList.contains("ativo")),
+    "hash v=swing: botão da visão marcado");
+  ok(erros3.length === 0,
+     "hash swing: sem pageerrors (" + erros3.join(";") + ")");
+  await p3.close();
   await p.screenshot({ path: "/tmp/eleitores_aud_desktop.png" });
   await p.close();
   // ---------- mobile: sheet de 3 alturas ----------
