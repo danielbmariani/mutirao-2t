@@ -30,7 +30,7 @@
   .resumo b { color: var(--txt); font-variant-numeric: tabular-nums; }
   .tw { overflow: auto; border: 1px solid var(--linha); border-radius: 10px;
         max-height: calc(100vh - 120px); position: relative; }
-  table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; min-width: 1240px; }
+  table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; min-width: 1700px; }
   thead th { position: sticky; background: #fff; z-index: 3; font-weight: 600; text-align: right;
     padding: 6px 8px; border-bottom: 1px solid var(--linha); white-space: nowrap; color: #333;
     cursor: pointer; user-select: none; }
@@ -52,7 +52,9 @@
   tbody td.neg { color: var(--neg); }
   tbody td.ord { background: #fdf6f6; font-weight: 600; }
   tbody tr:hover td.ord { background: #f6ecec; }
-  tbody td .rk { display: block; font-size: 10px; color: #999; font-weight: 400; line-height: 1.1; }
+  tbody td .rk { display: inline-block; min-width: 38px; text-align: right; margin-left: 6px;
+    font-size: 10px; color: #a0a0a0; font-weight: 400; }
+  tbody td.ord .rk { color: var(--acento); }
   td.nulo { color: #bbb; }
   th.fx, td.fx { position: sticky; left: 0; z-index: 2; background: #fff; }
   thead th.fx { z-index: 4; }
@@ -86,7 +88,7 @@
   perfil fizeram nesta eleição) e contra o <b>1º turno de 2022</b>. E <b>quanta abstenção houve a mais</b>, também
   de dois jeitos: contra a <b>esperada</b> pelo modelo irmão e contra o <b>2º turno de 2022</b> (quem votou
   naquele dia e faltou agora). Ao lado, a cobertura dos <b>programas federais em % da população</b>.
-  Clique no cabeçalho para ordenar; a coluna ordenada mostra a posição nacional de cada cidade.</p>
+  Depois de cada número, em cinza, a <b>posição do município no país</b> naquela coluna (1º = maior valor entre os 5.570), para saber se é muito ou pouco. Clique no cabeçalho para ordenar.</p>
   <div class="ctr">
     <input id="q" type="search" placeholder="Buscar município…" aria-label="Buscar município">
     <select id="uf" aria-label="Estado"><option value="">Todos os estados</option></select>
@@ -184,8 +186,8 @@
     { k: "emprego_formal_pct_pop", rot: "Emprego formal", g: "Programas federais, % da população", tipo: "pct", t: "Vínculos formais, % da população (ComunicaBR, até jul/2026)" },
     { k: "mcmv_por_100hab", rot: "MCMV (por 100 hab.)", g: "Programas federais, % da população", tipo: "pct", t: "Moradias contratadas desde 2023 por 100 habitantes (ComunicaBR, até jul/2026)" },
   ];
-  const SEM_RANK = new Set(["pop_2022", "lula_2026_pct", "lula_2022t1_pct", "lula_esperado_pct", "abst_2026_pct"]);
-  const RANKED = new Set(COLS.filter(c => c.tipo !== "txt" && !SEM_RANK.has(c.k)).map(c => c.k));
+  const RANKED = new Set(COLS.filter(c => c.tipo !== "txt").map(c => c.k));
+  const SOMAVEL = new Set(["def_modelo_votos", "def_2022_votos", "abst_modelo_votos_lula", "abst_2022_eleitores", "abst_2022_votos_lula"]);
   const fmtInt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
   const fmt1 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const fmt2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
@@ -252,8 +254,8 @@
     if (c.tipo === "txt") return `<td class="txt${c.k === "municipio" ? " fx fx2" : ""}${base}">${esc(v == null ? "" : v)}</td>`;
     if (v == null) return `<td class="nulo${base}">–</td>`;
     const s = c.tipo === "int" ? fmtInt.format(v) : c.tipo === "pp" ? (v > 0 ? "+" : "") + fmt1.format(v) : fmt2.format(v);
-    const rk = ord && RK[c.k] ? RK[c.k].get(r.cd_mun) : null;
-    return `<td class="${v < 0 ? "neg" : ""}${base}">${s}${rk ? `<span class="rk">${rk}º no país</span>` : ""}</td>`;
+    const rk = RK[c.k] ? RK[c.k].get(r.cd_mun) : null;
+    return `<td class="${v < 0 ? "neg" : ""}${base}">${s}${rk ? `<span class="rk" title="${rk}º entre ${fmtInt.format(RK[c.k].size)} municípios">${fmtInt.format(rk)}º</span>` : ""}</td>`;
   }
   function render() {
     cabecalho();
@@ -272,7 +274,7 @@
     const b = document.getElementById("mais"); b.style.display = f.length > st.lim ? "block" : "none";
     b.textContent = `Mostrar mais ${Math.min(200, f.length - st.lim)} (de ${fmtInt.format(f.length)})`;
     let soma = "";
-    if (c.tipo === "int" && RANKED.has(c.k)) {
+    if (SOMAVEL.has(c.k)) {
       const pos = f.reduce((s, r) => s + (r[c.k] > 0 ? r[c.k] : 0), 0);
       soma = ` · soma dos valores positivos em “${esc(c.g ? c.g + ": " : "")}${esc(c.rot)}”: <b>${fmtInt.format(pos)}</b>`;
     }

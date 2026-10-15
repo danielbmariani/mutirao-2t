@@ -115,17 +115,18 @@ t = t.merge(b, on="cd_mun", how="left").merge(prog, on="cd_mun", how="left")
 # ---- rankings nacionais (1 = maior)
 def rk(col):
     return t[col].rank(ascending=False, method="min").astype("Int64")
-for c in ["def_modelo_votos", "def_modelo_pp", "def_2022_votos", "def_2022_pp",
+for c in ["pop_censo_2022", "pct_lula_2026t1", "pct_lula_2022t1", "esperado_pct", "abst_2026_pct",
+          "def_modelo_votos", "def_modelo_pp", "def_2022_votos", "def_2022_pp",
           "abst_modelo_votos_lula", "abst_modelo_pp", "abst_2022_votos_lula", "abst_2022_pp",
           "bolsa_familia_pct_pop", "cadunico_pct_pop", "bpc_pct_pop", "farmacia_popular_pct_pop",
           "pe_de_meia_pct_pop", "mei_pct_pop", "emprego_formal_pct_pop", "mcmv_por_100hab"]:
     t["rk_" + c] = rk(c)
 
-COLS = ["cd_mun", "nm_mun", "uf", "pop_censo_2022", "aptos_2026", "votos_validos_2026t1",
-        "pct_lula_2026t1", "pct_flavio_2026t1", "lula_lidera", "pct_lula_2022t1", "pct_lula_2022t2",
-        "esperado_pct", "def_modelo_pp", "def_modelo_votos", "rk_def_modelo_votos", "rk_def_modelo_pp",
+COLS = ["cd_mun", "nm_mun", "uf", "pop_censo_2022", "rk_pop_censo_2022", "aptos_2026", "votos_validos_2026t1",
+        "pct_lula_2026t1", "rk_pct_lula_2026t1", "pct_flavio_2026t1", "lula_lidera", "pct_lula_2022t1", "rk_pct_lula_2022t1", "pct_lula_2022t2",
+        "esperado_pct", "rk_esperado_pct", "def_modelo_pp", "def_modelo_votos", "rk_def_modelo_votos", "rk_def_modelo_pp",
         "def_2022_pp", "def_2022_votos", "rk_def_2022_votos", "rk_def_2022_pp",
-        "abst_2026_pct", "abst_esperada_pct", "abst_modelo_pp", "abst_modelo_votos_lula",
+        "abst_2026_pct", "rk_abst_2026_pct", "abst_esperada_pct", "abst_modelo_pp", "abst_modelo_votos_lula",
         "abst_modelo_saldo", "rk_abst_modelo_votos_lula", "rk_abst_modelo_pp",
         "abst_2022t2_pct", "abst_2022t1_pct", "abst_2022_pp", "abst_2022_eleitores", "abst_2022_votos_lula",
         "rk_abst_2022_votos_lula", "rk_abst_2022_pp",
@@ -137,6 +138,8 @@ t = t[COLS].rename(columns={"nm_mun": "municipio", "pop_censo_2022": "pop_2022",
                             "votos_validos_2026t1": "validos_2026", "pct_lula_2026t1": "lula_2026_pct",
                             "pct_flavio_2026t1": "flavio_2026_pct", "pct_lula_2022t1": "lula_2022t1_pct",
                             "pct_lula_2022t2": "lula_2022t2_pct", "esperado_pct": "lula_esperado_pct",
+                            "rk_pop_censo_2022": "rk_pop_2022", "rk_pct_lula_2026t1": "rk_lula_2026_pct",
+                            "rk_pct_lula_2022t1": "rk_lula_2022t1_pct", "rk_esperado_pct": "rk_lula_esperado_pct",
                             "abst_modelo_saldo": "abst_modelo_saldo_lula_flavio"})
 for c in ["esperado_pct", "lula_esperado_pct", "abst_esperada_pct", "abst_2026_pct"]:
     if c in t: t[c] = t[c].round(2)
