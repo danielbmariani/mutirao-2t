@@ -76,11 +76,14 @@ Popular, Pé-de-Meia, MEI, emprego formal, Minha Casa Minha Vida por 100
 hab.; MDS ago/2026 e ComunicaBR, meses de referência no cabeçalho da
 página). `rk_*` = posição nacional (1 = mais votos a recuperar / maior
 cobertura; negativos no fim). Quatro colunas de texto, em linguagem
-direta e com as mesmas regras da página: `acao` (Convencer quem saiu /
+direta: `acao` (Convencer quem saiu /
 Levar à urna / Convencer e levar à urna / Só com conhecidos / Maré
 nacional, não local / Manter), `acao_motivo`, `porque` (as quatro réguas
 em frases) e `governo` (os programas em que o município está mais alto no
-país). Script: `regioes/ranking_municipios_110.py`.
+país). A página segue o formato da lista de cidades dos aliados: por que
+importa, o que fazer e quatro colunas do que o governo faz ali
+(`site/dados/destaques_mun.json`, programas em que o município está entre
+os 20% com mais do país). Script: `regioes/ranking_municipios_110.py`.
 As réguas de 2022 somam muito mais votos (4,2 mi na queda, 0,9 mi na
 abstenção) que as do modelo (0,65 mi e 0,44 mi) porque incluem a maré
 nacional; a correlação de postos entre as duas réguas de déficit é 0,33

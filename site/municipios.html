@@ -4,484 +4,425 @@
 <meta charset="utf-8">
 <title>Municípios: onde agir no 2º turno e por quê</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Para cada um dos 5.570 municípios: quantos votos faltaram a Lula no 1º turno de 2026 (contra o esperado pelo modelo e contra 2022), quanta abstenção houve a mais (contra a esperada e contra o 2º turno de 2022), o que fazer lá e o que o governo federal faz ali. Ordene, filtre por estado e baixe o CSV.">
+<meta name="description" content="Uma linha por município: quantos votos Lula tem a recuperar (contra o esperado para o perfil da cidade e contra 2022), quanta abstenção houve a mais (contra a esperada e contra o 2º turno de 2022), o que fazer lá e o que o governo federal já faz no lugar, comparado com o resto do país.">
 <link rel="canonical" href="https://mutirao-2t.vercel.app/municipios">
 <style>
   :root { --acento: #8F1D21; --link: #27568B; --txt: #121212; --sub: #666;
-          --linha: #e8e8e8; --fundo: #fff; --faixa: #faf7f0; --neg: #8a8a8a; }
+          --fundo: #f6f4ef; --linha: #e3e0d8; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--fundo); color: var(--txt);
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-  .wrap { max-width: 1320px; margin: 0 auto; padding: 22px 16px 48px; }
-  .topo a.volta { font-size: 12.5px; color: var(--link); text-decoration: none; }
-  h1 { font-size: 22px; line-height: 1.25; margin: 8px 0 8px; letter-spacing: -0.01em; }
-  .intro { font-size: 14px; line-height: 1.55; color: #333; max-width: 860px; margin: 0 0 6px; }
-  .intro b { font-weight: 600; }
-  .ctr { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin: 16px 0 10px; }
-  .ctr input, .ctr select { font: inherit; font-size: 13.5px; padding: 7px 9px;
-    border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; color: var(--txt); max-width: 100%; }
-  .ctr input[type=search] { width: 220px; }
-  .ctr .esp { flex: 1; }
-  .ctr a.btn { font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 11px;
-    border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; color: var(--txt);
-    text-decoration: none; cursor: pointer; }
-  .ctr a.btn:hover { border-color: #888; }
-  .modo { display: inline-flex; border: 1px solid #cfcfcf; border-radius: 8px; overflow: hidden; }
-  .modo button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 11px; border: 0;
-    background: #fff; color: #555; cursor: pointer; }
-  .modo button.ativo { background: #121212; color: #fff; }
-  .resumo { font-size: 12.5px; color: var(--sub); margin: 0 0 8px; line-height: 1.6; }
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 16px 60px; }
+  h1 { font-size: 22px; letter-spacing: -0.01em; margin: 0 0 6px; line-height: 1.2; }
+  .sub { color: var(--sub); font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; max-width: 800px; }
+  a { color: var(--link); }
+  .volta { font-size: 13px; margin-bottom: 14px; display: inline-block; }
+  .controles { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 10px; }
+  .controles input, .controles select { font: inherit; font-size: 14px; padding: 8px 10px;
+    border: 1.5px solid #c9c9c9; border-radius: 8px; background: #fff; color: var(--txt); max-width: 100%; }
+  .controles input { flex: 1 1 220px; min-width: 180px; }
+  .controles input:focus, .controles select:focus { outline: none; border-color: #121212; }
+  .resumo { font-size: 12.5px; color: var(--sub); margin: 0 0 10px; }
   .resumo b { color: var(--txt); font-variant-numeric: tabular-nums; }
-  .leg { display: inline-flex; gap: 10px; align-items: center; font-size: 11.5px; color: var(--sub);
-    margin-left: 8px; flex-wrap: wrap; }
-  .leg i { display: inline-block; width: 14px; height: 11px; border-radius: 2px; vertical-align: -1px;
-    margin-right: 3px; border: 1px solid rgba(0,0,0,.06); }
-  .tw { overflow: auto; border: 1px solid var(--linha); border-radius: 10px;
-        max-height: calc(100vh - 120px); position: relative; }
-  table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; width: 100%; }
-  table.completa { min-width: 1700px; }
-  table.sum { min-width: 980px; }
-  thead th { position: sticky; top: 0; background: #fff; z-index: 3; font-weight: 600; text-align: right;
-    padding: 6px 8px; border-bottom: 1px solid var(--linha); white-space: nowrap; color: #333;
-    cursor: pointer; user-select: none; }
-  thead tr.grp th { top: 0; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase;
-    color: #888; text-align: left; border-bottom: 0; padding-bottom: 0; cursor: default;
-    border-left: 1px solid var(--linha); }
-  thead tr.grp th:first-child { border-left: 0; }
-  table.completa thead tr.col th { top: 22px; }
-  thead th.ini { border-left: 1px solid var(--linha); }
-  thead th.ord { color: var(--acento); }
-  thead th.ord::after { content: " ▼"; font-size: 9px; }
-  thead th.ord.asc::after { content: " ▲"; }
-  thead th.txt { text-align: left; }
-  tbody td { padding: 5px 8px; border-bottom: 1px solid #f1f1f1; text-align: right;
-    font-variant-numeric: tabular-nums; white-space: nowrap; vertical-align: top; }
-  tbody td.txt { text-align: left; }
-  tbody td.ini { border-left: 1px solid var(--linha); }
-  tbody tr:hover td { background: var(--faixa); }
-  tbody td.neg { color: var(--neg); }
-  tbody td.ord { background: #fdf6f6; font-weight: 600; }
-  tbody tr:hover td.ord { background: #f6ecec; }
-  tbody td .rk { display: inline-block; min-width: 38px; text-align: right; margin-left: 6px;
-    font-size: 10px; color: #a0a0a0; font-weight: 400; }
-  tbody td.ord .rk { color: var(--acento); }
-  td.nulo { color: #bbb; }
-  tbody td.f3 { background: rgba(39,86,139,0.09); }
-  tbody td.f2 { background: rgba(39,86,139,0.20); }
-  tbody td.f1 { background: rgba(39,86,139,0.34); color: #0d2a4a; font-weight: 600; }
-  tbody td.f1 .rk { color: #35557a; }
-  tbody tr:hover td.f3 { background: rgba(39,86,139,0.14); }
-  tbody tr:hover td.f2 { background: rgba(39,86,139,0.25); }
-  tbody tr:hover td.f1 { background: rgba(39,86,139,0.40); }
-  th.fx, td.fx { position: sticky; left: 0; z-index: 2; background: #fff; }
-  thead th.fx { z-index: 4; }
-  th.fx2, td.fx2 { left: 38px; min-width: 150px; max-width: 220px; overflow: hidden;
-    text-overflow: ellipsis; box-shadow: 4px 0 6px -4px rgba(0,0,0,.12); }
-  td.pos { color: #999; font-size: 11px; }
-  tbody tr:hover td.fx { background: var(--faixa); }
-  /* ---- resumo */
-  table.sum thead th { text-align: left; }
-  table.sum thead th.num { text-align: right; }
-  table.sum tbody td { white-space: normal; padding: 10px 10px; line-height: 1.45; font-size: 12.5px;
-    text-align: left; border-bottom: 1px solid var(--linha); }
-  table.sum tbody td.num { text-align: right; white-space: nowrap; }
-  table.sum td.lugar { min-width: 190px; }
-  table.sum td.lugar b { font-size: 13.5px; }
-  table.sum td.lugar small { display: block; color: var(--sub); font-size: 11.5px; margin-top: 2px; }
-  table.sum td.num .v { font-size: 15px; font-weight: 700; display: block; }
-  table.sum td.num .v.neg { color: var(--neg); font-weight: 600; }
-  table.sum td.num .rk2 { font-size: 11px; color: var(--acento); }
-  table.sum td.num .un { display: block; font-size: 10.5px; color: #999; margin-top: 1px; white-space: normal; max-width: 120px; margin-left: auto; }
-  table.sum td.pq { max-width: 380px; color: #333; }
-  table.sum td.acao { min-width: 170px; max-width: 230px; }
-  table.sum td.acao b { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 12px; margin-bottom: 4px; }
-  .a-conv b { background: #f6e3e4; color: #6e1216; }
-  .a-urna b { background: #e3ecf6; color: #1b3f69; }
-  .a-ambos b { background: #efe3f0; color: #5a1f5e; }
-  .a-conh b { background: #f1f1f1; color: #444; }
-  .a-mare b { background: #f5efe0; color: #5c4a14; }
-  .a-manter b { background: #e6f1e8; color: #1f5a2c; }
-  table.sum td.acao span { display: block; color: #555; font-size: 12px; }
-  table.sum td.gov { max-width: 300px; }
-  .chip { display: inline-block; padding: 2px 7px; border-radius: 6px; margin: 0 4px 4px 0; font-size: 11.5px;
-    border: 1px solid rgba(0,0,0,.05); white-space: nowrap; }
-  .chip.f1 { background: rgba(39,86,139,0.34); color: #0d2a4a; font-weight: 600; }
-  .chip.f2 { background: rgba(39,86,139,0.20); color: #0d2a4a; }
-  .chip.f3 { background: rgba(39,86,139,0.09); color: #1d3a5c; }
-  .gov .nada { color: #777; font-size: 12px; }
-  .mais { display: block; width: 100%; margin: 10px 0 0; padding: 9px; font: inherit; font-size: 13px;
-    font-weight: 600; border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; cursor: pointer; }
-  details { margin-top: 22px; max-width: 860px; font-size: 13.5px; line-height: 1.55; color: #333; }
-  summary { cursor: pointer; font-weight: 600; font-size: 14px; }
-  details h3 { font-size: 13.5px; margin: 14px 0 4px; }
-  details p { margin: 6px 0; }
-  details ul { padding-left: 20px; margin: 6px 0; }
-  details li { margin: 3px 0; }
-  details a, .rod a { color: var(--link); }
-  .rod { font-size: 12px; color: var(--sub); margin-top: 22px; line-height: 1.5; }
-  @media (max-width: 760px) {
+  .resumo button { font: inherit; font-size: 12.5px; color: var(--link); background: none; border: 0;
+    padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .tabela-wrap { overflow-x: auto; background: #fff; border-radius: 10px; border: 1px solid var(--linha); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 1240px; }
+  th, td { padding: 10px 10px; border-bottom: 1px solid var(--linha); text-align: left;
+           vertical-align: top; line-height: 1.45; font-variant-numeric: tabular-nums; }
+  td:nth-child(1) { color: var(--sub); width: 30px; padding-right: 0; }
+  td.lugar { width: 12%; } td.porque { width: 20%; } td.acao { width: 15%; }
+  td.gov { width: 12%; padding-left: 8px; padding-right: 8px; }
+  td.gov .chip { display: block; margin: 0 0 4px; font-size: 11.5px; line-height: 1.3; }
+  td.gov .chip small { display: block; margin: 0; }
+  td .nm { font-weight: 700; font-size: 14px; }
+  td .meta { color: var(--sub); font-size: 11.5px; display: block; margin-top: 2px; }
+  td .def { font-weight: 700; color: var(--acento); display: block; }
+  td .def.zero { color: var(--sub); font-weight: 600; }
+  td .meta.ativo { color: var(--acento); font-weight: 700; font-size: 13px; }
+  td .rk { color: var(--sub); font-weight: 400; font-size: 11px; margin-left: 4px; }
+  td .cai { color: var(--acento); } td .sobe { color: #2d6a4f; }
+  td .lk { font-size: 11px; margin-top: 4px; display: block; }
+  td .ac { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
+  .a-conv .ac { background: #f6e3e4; color: #6e1216; }
+  .a-urna .ac { background: #e3ecf6; color: #1b3f69; }
+  .a-ambos .ac { background: #efe3f0; color: #5a1f5e; }
+  .a-conh .ac { background: #efefef; color: #444; }
+  .a-mare .ac { background: #f5efe0; color: #5c4a14; }
+  .a-manter .ac { background: #e6f1e8; color: #1f5a2c; }
+  td .mot { color: #444; font-size: 12px; display: block; }
+  td .mais-chips { font: inherit; font-size: 11.5px; color: var(--link); background: none; border: 0;
+    padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; margin-left: 2px; }
+  td .chip { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 7px; border-radius: 6px;
+    font-size: 12px; white-space: normal; background: rgba(39,86,139,0.12); color: #1d3a5c; line-height: 1.35; }
+  td .chip.f1 { background: rgba(39,86,139,0.34); color: #0d2a4a; font-weight: 600; }
+  td .chip small { color: #35557a; font-size: 10.5px; margin-left: 3px; }
+  td .nada { color: var(--sub); font-size: 12px; }
+  th { position: sticky; top: 0; background: #faf9f6; font-size: 11.5px; color: #444; font-weight: 600;
+       user-select: none; line-height: 1.2; vertical-align: bottom; }
+  .nota { font-size: 12px; color: #444; line-height: 1.5; max-width: 800px; margin-top: 18px; }
+  .nota h2 { font-size: 14px; margin: 18px 0 6px; }
+  .mais { display: block; margin: 10px auto 0; font: inherit; font-size: 13px; font-weight: 600;
+    color: var(--acento); background: none; border: 0; cursor: pointer; }
+  /* tabela completa (todas as colunas) */
+  table.completa { min-width: 1750px; font-size: 12.5px; }
+  table.completa th, table.completa td { padding: 5px 8px; white-space: nowrap; text-align: right; }
+  table.completa th { cursor: pointer; }
+  table.completa th.txt, table.completa td.txt { text-align: left; }
+  table.completa tr.grp th { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: #888;
+    text-align: left; border-bottom: 0; padding-bottom: 0; cursor: default; border-left: 1px solid var(--linha); }
+  table.completa tr.grp th:first-child { border-left: 0; }
+  table.completa tr.col th { top: 22px; }
+  table.completa th.ini, table.completa td.ini { border-left: 1px solid var(--linha); }
+  table.completa th.ord { color: var(--acento); }
+  table.completa th.ord::after { content: " ▾"; } table.completa th.ord.asc::after { content: " ▴"; }
+  table.completa td.ord { background: #fdf6f6; font-weight: 600; }
+  table.completa td.neg { color: #8a8a8a; }
+  table.completa td .rk { display: inline-block; min-width: 38px; text-align: right; margin-left: 6px; font-size: 10px; color: #a0a0a0; }
+  table.completa td.ord .rk { color: var(--acento); }
+  table.completa td.f3 { background: rgba(39,86,139,0.09); }
+  table.completa td.f2 { background: rgba(39,86,139,0.20); }
+  table.completa td.f1 { background: rgba(39,86,139,0.34); color: #0d2a4a; font-weight: 600; }
+  table.completa th.fx, table.completa td.fx { position: sticky; left: 0; background: #fff; z-index: 2; }
+  table.completa th.fx { background: #faf9f6; z-index: 4; }
+  table.completa th.fx2, table.completa td.fx2 { left: 38px; min-width: 150px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 600px) {
+    main { padding: 16px 12px 40px; }
     h1 { font-size: 19px; }
-    .ctr input[type=search] { width: 100%; }
-    th.fx2, td.fx2 { min-width: 120px; max-width: 150px; }
-    .tw.sum-wrap { border: 0; max-height: none; overflow: visible; }
-    table.sum { min-width: 0; display: block; }
-    table.sum thead { display: none; }
-    table.sum tbody, table.sum tr { display: block; }
-    table.sum tr { border: 1px solid var(--linha); border-radius: 10px; margin-bottom: 10px; padding: 6px 2px; }
-    table.sum tbody td { display: block; border: 0; padding: 5px 10px; max-width: none; }
-    table.sum tbody td.pos { display: none; }
-    table.sum tbody td.num { text-align: left; }
-    table.sum td.num .v { display: inline; margin-right: 6px; }
-    table.sum td.num .un { display: inline; margin-left: 4px; max-width: none; }
-    table.sum tbody td::before { content: attr(data-l); display: block; font-size: 10.5px; letter-spacing: .05em;
-      text-transform: uppercase; color: #999; margin-bottom: 2px; }
-    table.sum tbody td.lugar::before { display: none; }
+    table:not(.completa) { min-width: 0; }
+    table:not(.completa), table:not(.completa) thead, table:not(.completa) tbody,
+    table:not(.completa) tr, table:not(.completa) td { display: block; }
+    table:not(.completa) thead { display: none; }
+    table:not(.completa) tr { border-bottom: 2px solid var(--linha); padding: 8px 0 6px; }
+    table:not(.completa) td { border: 0; padding: 3px 4px; width: auto !important; }
+    table:not(.completa) td:nth-child(1) { display: none; }
+    td.porque::before, td.acao::before, td.gov::before { content: attr(data-rot);
+      display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+      text-transform: uppercase; color: #888; margin: 4px 0 1px; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topo"><a class="volta" href="./">← Mutirão do 2º turno: mapa</a></div>
-  <h1>Municípios: onde agir no 2º turno e por quê</h1>
-  <p class="intro">Para cada um dos 5.570 municípios: <b>quantos votos faltaram a Lula</b> no 1º turno
-  (contra o esperado para o perfil da cidade e contra 2022), <b>quanta abstenção houve a mais</b> (contra a
-  esperada e contra o 2º turno de 2022), <b>o que fazer lá</b> e <b>o que o governo federal faz ali</b>.
-  Depois de cada número, a posição do município no país. A tabela completa, com todas as colunas,
-  fica no botão ao lado.</p>
-  <div class="ctr">
-    <span class="modo"><button id="m-r" class="ativo">Resumo</button><button id="m-c">Tabela completa</button></span>
-    <select id="ord" aria-label="Ordenar por"></select>
-    <input id="q" type="search" placeholder="Buscar município…" aria-label="Buscar município">
-    <select id="uf" aria-label="Estado"><option value="">Todos os estados</option></select>
-    <select id="pop" aria-label="População mínima">
-      <option value="0">Qualquer população</option>
-      <option value="20000">20 mil habitantes ou mais</option>
-      <option value="50000">50 mil ou mais</option>
-      <option value="100000">100 mil ou mais</option>
-      <option value="500000">500 mil ou mais</option>
-    </select>
-    <select id="lid" aria-label="Quem lidera">
-      <option value="">Lula à frente ou atrás</option>
-      <option value="1">Só onde Lula lidera</option>
-      <option value="0">Só onde Flávio lidera</option>
-    </select>
-    <select id="ac" aria-label="O que fazer"><option value="">Qualquer ação</option></select>
-    <span class="esp"></span>
-    <a class="btn" href="dados/ranking_municipios.csv" download>Baixar CSV</a>
-    <a class="btn" href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">GitHub ↗</a>
-  </div>
-  <p class="resumo"><span id="resumo">Carregando…</span>
-    <span class="leg">Programas: <span><i style="background:rgba(39,86,139,0.34)"></i>10% mais altos do país</span>
-    <span><i style="background:rgba(39,86,139,0.20)"></i>25% mais altos</span>
-    <span><i style="background:rgba(39,86,139,0.09)"></i>metade de cima</span></span></p>
-  <div class="tw sum-wrap" id="tw"><table id="t" class="sum"><thead></thead><tbody></tbody></table></div>
-  <button class="mais" id="mais" style="display:none">Mostrar mais</button>
-
-  <details>
-    <summary>Como ler esta tabela</summary>
-    <h3>O que fazer</h3>
-    <p>A ação vem das duas réguas do modelo, que medem o que destoa do padrão nesta eleição.
-    <b>Convencer quem saiu</b>: Lula ficou ao menos 1 ponto abaixo do esperado e a abstenção está no padrão.
-    <b>Levar à urna</b>: Lula lidera e a abstenção ficou ao menos 1 ponto acima da esperada.
-    <b>Convencer e levar à urna</b>: as duas coisas. <b>Só com conhecidos</b>: abstenção acima da esperada, mas
-    Flávio lidera, e mobilização geral devolve mais voto a ele. <b>Maré nacional, não local</b>: Lula caiu bem
-    mais que o país desde 2022, mas o resultado é o esperado para lugares com aquele perfil; é a onda, não um
-    problema da cidade. <b>Manter</b>: dentro ou acima do esperado, abstenção no padrão.</p>
-    <h3>Déficit de votos de Lula</h3>
-    <p><b>Contra o modelo</b>: um modelo treinado nos 468 mil setores censitários do país prevê o voto de Lula
-    em 2026 a partir do voto de 2022 e 2018 e do perfil do Censo 2022. O déficit é o esperado menos o real,
-    somado nos setores do município. Positivo = Lula ficou abaixo do que lugares parecidos fizeram
-    nesta eleição; é o voto que destoa do padrão e, por isso, o mais sensível a ação local.
-    <b>Contra 2022</b>: a fatia de Lula no 1º turno de 2022 menos a de 2026, aplicada aos votos válidos de
-    2026 (resultado oficial do TSE). Inclui a maré nacional: no país a fatia caiu de 48,4% para 45,2%,
-    por isso quase todo município tem valor positivo nessa régua.</p>
-    <h3>Abstenção</h3>
-    <p><b>Contra o modelo</b>: a abstenção de 2026 menos a esperada por um modelo que usa o histórico de
-    abstenção, o perfil demográfico e a cobertura da biometria, nos setores do município. Os votos são o
-    excesso × eleitores aptos × fatia de Lula no lugar. Em cerca de 1% dos municípios, pequenos, os setores
-    do modelo cobrem menos de 70% dos aptos oficiais e o valor em votos fica subestimado.
-    <b>Contra o 2º turno de 2022</b>: a abstenção de 2026 menos a do 2º turno de 2022, oficial do TSE. A
-    coluna de eleitores é esse excesso aplicado aos aptos de 2026 ("eleitores a mais em casa"); a de votos
-    de Lula multiplica pela fatia dele em 2026.</p>
-    <h3>O que o governo faz ali</h3>
-    <p>Os programas em que o município está mais alto no país, em % da população do Censo 2022: até três
-    entre os 25% mais altos, ou dois da metade de cima. Bolsa Família e CadÚnico: pessoas nas famílias
-    beneficiárias ou cadastradas (MDS, ago/2026). BPC: beneficiários (MDS, ago/2026). Farmácia Popular:
-    pessoas atendidas no ano até ago/2026. Pé-de-Meia: estudantes (até mar/2026). MEI: cadastrados (até
-    jun/2026). Emprego formal: vínculos (até jul/2026). Minha Casa, Minha Vida: moradias contratadas desde
-    2023 por 100 habitantes (até jul/2026; 382 municípios sem registro). Fonte: ComunicaBR, Secom/PR, salvo
-    MDS. Em cidades pequenas o CadÚnico pode passar de 100% por cadastro desatualizado.</p>
-    <h3>Cuidados</h3>
-    <ul>
-      <li>Ordenar por votos favorece cidades grandes; ordenar por pontos percentuais mostra intensidade.</li>
-      <li>Valores negativos (em cinza) significam que Lula ficou acima do esperado, ou que a abstenção
-      ficou abaixo da régua.</li>
-      <li>As réguas de 2022 somam muito mais votos que as do modelo porque incluem a queda que aconteceu
-      em todo lugar com o mesmo perfil. O modelo mede só o que destoa.</li>
-      <li>São medidas de território, não de pessoas. A passagem de urna para setor é estimativa.</li>
-    </ul>
-    <p>Metodologia completa e dados por setor: <a href="./">mapa do mutirão</a> e
-    <a href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">repositório no GitHub</a>
-    (arquivo <code>dados_modelo/ranking_municipios.csv</code>, com os mesmos textos nas colunas
-    <code>acao</code>, <code>porque</code> e <code>governo</code>).</p>
-  </details>
-  <p class="rod">Por Daniel Mariani. Dados: TSE (resultados e comparecimento por seção, 2022 e 2026), IBGE
-  (Censo 2022), MDS (MI Social, ago/2026), ComunicaBR (Secom/PR, baixado em 15/10/2026). Licença CC BY 4.0.
-  <span id="gerado"></span></p>
+<main>
+<a class="volta" href="./">← Voltar ao mapa do mutirão</a>
+<h1>Municípios: onde agir no 2º turno e por quê</h1>
+<p class="sub">Cada linha é um município, do que tem mais votos a recuperar para o que tem menos:
+  por que ele importa (quanto Lula ficou abaixo do esperado para o perfil da cidade, quanto caiu desde
+  2022, quanta abstenção houve a mais), o que fazer lá e o que o governo federal já faz no lugar, em
+  comparação com o resto do país. Feito para quem tem pouco tempo: o detalhe fica no
+  <a href="./">mapa do mutirão</a>; quem do campo aliado tem voto em cada cidade está na
+  <a href="https://aliados-2t.vercel.app/cidades" target="_blank" rel="noopener">lista dos aliados</a>.</p>
+<div class="controles">
+  <input id="busca" type="search" placeholder="Busque o município" aria-label="Buscar">
+  <select id="uf" aria-label="Estado"><option value="">Todos os estados</option></select>
+  <select id="pop" aria-label="Tamanho">
+    <option value="0">Todas as cidades</option>
+    <option value="20000">20 mil habitantes ou mais</option>
+    <option value="50000">50 mil ou mais</option>
+    <option value="100000">100 mil ou mais</option>
+    <option value="500000">500 mil ou mais</option>
+  </select>
+  <select id="lid" aria-label="Quem lidera">
+    <option value="">Lula à frente ou atrás</option>
+    <option value="1">Só onde Lula lidera</option>
+    <option value="0">Só onde Flávio lidera</option>
+  </select>
+  <select id="ac" aria-label="O que fazer"><option value="">Qualquer ação</option></select>
+  <select id="ordem" aria-label="Ordenar">
+    <option value="def_modelo_votos">Mais votos a recuperar primeiro (abaixo do esperado)</option>
+    <option value="def_2022_votos">Mais votos perdidos desde 2022 primeiro</option>
+    <option value="abst_modelo_votos_lula">Mais votos de Lula na abstenção a mais primeiro (esperada)</option>
+    <option value="abst_2022_eleitores">Mais eleitores a mais em casa que em 2022 primeiro</option>
+    <option value="pop_2022">Maiores cidades primeiro</option>
+  </select>
 </div>
-
+<p class="resumo" id="resumo"></p>
+<div class="tabela-wrap">
+<table id="tab">
+  <thead id="cab"><tr>
+    <th>#</th><th>Cidade</th><th>Por que importa</th><th>O que fazer</th>
+    <th>Proteção social</th><th>Saúde e educação</th><th>Trabalho e economia</th><th>Moradia e infraestrutura</th>
+  </tr></thead>
+  <tbody id="corpo"></tbody>
+</table>
+</div>
+<button class="mais" id="mais" type="button">Mostrar mais</button>
+<div class="nota">
+  <h2>Como ler</h2>
+  <p><b>Por que importa.</b> Votos a recuperar = quanto Lula ficou abaixo do esperado na cidade no 1º
+  turno de 2026, segundo o modelo do mutirão (perfil do lugar e voto de 2022 e 2018), somando os setores
+  censitários do município. A queda desde 2022 é a comparação direta com o 1º turno de 2022, em pontos e
+  em votos (pontos perdidos vezes os votos válidos de 2026); no país a fatia de Lula caiu 3,3 pontos.
+  Cidades em que Lula caiu como o resto do país ficam com poucos votos a recuperar, mas podem ter queda
+  grande. A abstenção é comparada com a esperada por um modelo irmão (histórico, perfil e biometria) e
+  com a do 2º turno de 2022 ("eleitores a mais em casa"). Depois do número em destaque, a posição do
+  município no país. Em cerca de 1% dos municípios, pequenos, os setores do modelo de abstenção cobrem
+  menos de 70% dos aptos oficiais e os votos na abstenção ficam subestimados.</p>
+  <p><b>O que fazer.</b> Vem das duas réguas do modelo, que medem o que destoa do padrão nesta eleição.
+  <b>Convencer quem saiu</b>: Lula ao menos 1 ponto abaixo do esperado, abstenção no padrão.
+  <b>Levar à urna</b>: Lula lidera e a abstenção ficou ao menos 1 ponto acima da esperada.
+  <b>Convencer e levar à urna</b>: as duas coisas. <b>Só com conhecidos</b>: abstenção acima da esperada,
+  mas Flávio lidera, e mobilização geral devolve mais voto a ele. <b>Maré nacional, não local</b>: caiu bem
+  mais que o país desde 2022, mas o resultado é o esperado para lugares com aquele perfil; é a onda, não
+  um problema da cidade. <b>Manter</b>: dentro ou acima do esperado, abstenção no padrão.</p>
+  <p><b>O que o governo faz ali.</b> Quatro colunas por tipo de serviço (proteção social; saúde e
+  educação; trabalho e economia; moradia, saneamento e infraestrutura) com os programas e serviços em que
+  o município está entre os 20% com mais do país, por habitante; azul escuro marca os 5% com mais (Bolsa
+  Família, BPC, Farmácia Popular, Pé-de-Meia, Minha Casa Minha Vida, Mais Médicos, Pronampe, Plano Safra
+  e outros, do painel ComunicaBR e do MDS). A lista completa, com fonte e data, está no card da cidade no
+  mapa do mutirão. Fontes: TSE, IBGE, Secom/PR, MDS, MTE, INEP, Ministério das Cidades.</p>
+  <p>Os mesmos números, com todas as colunas e a posição nacional em cada uma, estão na
+  <button type="button" id="abre-completa" style="font:inherit;color:var(--link);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline">tabela completa</button>
+  e no CSV (<a href="dados/ranking_municipios.csv" download>baixar</a>;
+  <a href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">GitHub</a>,
+  arquivo <code>dados_modelo/ranking_municipios.csv</code>, com a leitura de cada município nas colunas
+  <code>acao</code>, <code>porque</code> e <code>governo</code>).</p>
+</div>
+</main>
 <script>
-(async function () {
-  "use strict";
-  // Dados próprios, pré-computados (dados/ranking_municipios.json); todo texto passa por esc().
-  const COLS = [
-    { k: "municipio", rot: "Município", g: "", tipo: "txt" },
-    { k: "uf", rot: "UF", g: "", tipo: "txt" },
-    { k: "pop_2022", rot: "População 2022", g: "", tipo: "int", t: "População do Censo 2022 (IBGE)" },
-    { k: "lula_2026_pct", rot: "Lula 2026", g: "Voto (% dos válidos)", tipo: "pct", t: "Fatia de Lula nos votos válidos, 1º turno de 2026 (TSE)" },
-    { k: "lula_2022t1_pct", rot: "Lula 2022 (1T)", g: "Voto (% dos válidos)", tipo: "pct", t: "Fatia de Lula nos votos válidos, 1º turno de 2022 (TSE)" },
-    { k: "lula_esperado_pct", rot: "Lula esperado", g: "Voto (% dos válidos)", tipo: "pct", t: "Fatia prevista pelo modelo para 2026, somando os setores do município" },
-    { k: "def_modelo_pp", rot: "vs modelo (pp)", g: "Déficit de votos de Lula", tipo: "pp", t: "Esperado − real, em pontos percentuais. Positivo = faltaram votos" },
-    { k: "def_modelo_votos", rot: "vs modelo (votos)", g: "Déficit de votos de Lula", tipo: "int", t: "Déficit em votos: soma de (esperado − real) × válidos dos setores" },
-    { k: "def_2022_pp", rot: "vs 2022 1T (pp)", g: "Déficit de votos de Lula", tipo: "pp", t: "Fatia de 2022 (1T) − fatia de 2026, em pontos" },
-    { k: "def_2022_votos", rot: "vs 2022 1T (votos)", g: "Déficit de votos de Lula", tipo: "int", t: "Queda em pontos × votos válidos de 2026" },
-    { k: "abst_2026_pct", rot: "Abstenção 2026", g: "Abstenção", tipo: "pct", t: "Abstenção oficial no 1º turno de 2026, % dos aptos (TSE)" },
-    { k: "abst_modelo_pp", rot: "vs modelo (pp)", g: "Abstenção", tipo: "pp", t: "Abstenção real − esperada pelo modelo, em pontos (base: setores do modelo)" },
-    { k: "abst_modelo_votos_lula", rot: "vs modelo (votos de Lula)", g: "Abstenção", tipo: "int", t: "Excesso de abstenção × aptos × fatia de Lula, somado nos setores" },
-    { k: "abst_2022_pp", rot: "vs 2022 2T (pp)", g: "Abstenção", tipo: "pp", t: "Abstenção de 2026 − abstenção do 2º turno de 2022, em pontos (TSE)" },
-    { k: "abst_2022_eleitores", rot: "vs 2022 2T (eleitores)", g: "Abstenção", tipo: "int", t: "Eleitores a mais em casa: excesso × aptos de 2026" },
-    { k: "abst_2022_votos_lula", rot: "vs 2022 2T (votos de Lula)", g: "Abstenção", tipo: "int", t: "Eleitores a mais em casa × fatia de Lula em 2026" },
-    { k: "bolsa_familia_pct_pop", rot: "Bolsa Família", g: "Programas federais, % da população", tipo: "pct", t: "Pessoas nas famílias beneficiárias, % da população (MDS, ago/2026)" },
-    { k: "cadunico_pct_pop", rot: "CadÚnico", g: "Programas federais, % da população", tipo: "pct", t: "Pessoas cadastradas, % da população (MDS, ago/2026)" },
-    { k: "bpc_pct_pop", rot: "BPC", g: "Programas federais, % da população", tipo: "pct", t: "Beneficiários do BPC, % da população (MDS, ago/2026)" },
-    { k: "farmacia_popular_pct_pop", rot: "Farmácia Popular", g: "Programas federais, % da população", tipo: "pct", t: "Pessoas atendidas no ano, % da população (ComunicaBR, até ago/2026)" },
-    { k: "pe_de_meia_pct_pop", rot: "Pé-de-Meia", g: "Programas federais, % da população", tipo: "pct", t: "Estudantes no programa, % da população (ComunicaBR, até mar/2026)" },
-    { k: "mei_pct_pop", rot: "MEI", g: "Programas federais, % da população", tipo: "pct", t: "MEI cadastrados, % da população (ComunicaBR, até jun/2026)" },
-    { k: "emprego_formal_pct_pop", rot: "Emprego formal", g: "Programas federais, % da população", tipo: "pct", t: "Vínculos formais, % da população (ComunicaBR, até jul/2026)" },
-    { k: "mcmv_por_100hab", rot: "MCMV (por 100 hab.)", g: "Programas federais, % da população", tipo: "pct", t: "Moradias contratadas desde 2023 por 100 habitantes (ComunicaBR, até jul/2026)" },
-  ];
-  const BY = Object.fromEntries(COLS.map(c => [c.k, c]));
-  const RANKED = new Set(COLS.filter(c => c.tipo !== "txt").map(c => c.k));
-  const SOMAVEL = new Set(["def_modelo_votos", "def_2022_votos", "abst_modelo_votos_lula", "abst_2022_eleitores", "abst_2022_votos_lula"]);
-  // réguas do resumo: rótulo curto da coluna de votos + unidade
-  const REGUAS = [
-    { k: "def_modelo_votos", nome: "Votos abaixo do esperado (modelo)", un: "votos que faltaram contra o esperado pelo modelo" },
-    { k: "def_modelo_pp", nome: "Pontos abaixo do esperado (modelo)", un: "pontos abaixo do esperado" },
-    { k: "def_2022_votos", nome: "Votos perdidos desde 2022 (1T)", un: "votos perdidos em relação ao 1º turno de 2022" },
-    { k: "def_2022_pp", nome: "Pontos perdidos desde 2022 (1T)", un: "pontos a menos que em 2022" },
-    { k: "abst_modelo_votos_lula", nome: "Votos de Lula na abstenção a mais (modelo)", un: "votos de Lula na abstenção acima da esperada" },
-    { k: "abst_modelo_pp", nome: "Pontos de abstenção acima da esperada (modelo)", un: "pontos de abstenção acima da esperada" },
-    { k: "abst_2022_votos_lula", nome: "Votos de Lula na abstenção a mais vs 2022 (2T)", un: "votos de Lula entre os eleitores a mais em casa que no 2º turno de 2022" },
-    { k: "abst_2022_eleitores", nome: "Eleitores a mais em casa vs 2022 (2T)", un: "eleitores a mais em casa que no 2º turno de 2022" },
-    { k: "abst_2022_pp", nome: "Pontos de abstenção a mais vs 2022 (2T)", un: "pontos de abstenção a mais que no 2º turno de 2022" },
-    { k: "pop_2022", nome: "População", un: "habitantes (Censo 2022)" },
-  ];
-  const QUEDA_BR = 3.28;
-  const PROGS = [["bolsa_familia_pct_pop", "Bolsa Família", "% da pop."], ["cadunico_pct_pop", "CadÚnico", "% da pop."],
-    ["bpc_pct_pop", "BPC", "% da pop."], ["farmacia_popular_pct_pop", "Farmácia Popular", "% atendidos no ano"],
-    ["pe_de_meia_pct_pop", "Pé-de-Meia", "% da pop."], ["mei_pct_pop", "MEI", "% da pop."],
-    ["emprego_formal_pct_pop", "Emprego formal", "% da pop."], ["mcmv_por_100hab", "Minha Casa Minha Vida", " moradias por 100 hab."]];
-  const ACOES = {
-    "Convencer quem saiu": "a-conv", "Levar à urna": "a-urna", "Convencer e levar à urna": "a-ambos",
-    "Só com conhecidos": "a-conh", "Maré nacional, não local": "a-mare", "Manter": "a-manter" };
-  const fmtInt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
-  const fmt1 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const fmt2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  // mesmas regras do ranking_municipios_110.py (f1, fi, mil, porque, acao, governo)
-  const f1 = v => fmt1.format(v);
-  const fi = v => fmtInt.format(v);
-  const mil = v => { v = Math.abs(v); if (v >= 1e6) return f1(v / 1e6) + " mi"; if (v >= 1e4) return fi(Math.round(v / 1e3)) + " mil"; if (v >= 1e3) return f1(v / 1e3) + " mil"; return fi(v); };
+"use strict";
+// Dados próprios, pré-computados; a página monta tudo com DOM (textContent), sem HTML de fora.
+const fmtMil = v => v == null ? "" :
+  Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mi" :
+  Math.abs(v) >= 1e4 ? Math.round(v / 1e3).toLocaleString("pt-BR") + " mil" :
+  Math.round(v).toLocaleString("pt-BR");
+const fmtInt = v => v == null ? "" : Math.round(v).toLocaleString("pt-BR");
+const fmt1 = v => v == null ? "" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const semAcento = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const $ = id => document.getElementById(id);
+const QUEDA_BR = 3.28;
+const ACOES = { "Convencer quem saiu": "a-conv", "Levar à urna": "a-urna", "Convencer e levar à urna": "a-ambos",
+  "Só com conhecidos": "a-conh", "Maré nacional, não local": "a-mare", "Manter": "a-manter" };
+const TEMAS = [["s", "Proteção social"], ["e", "Saúde e educação"], ["t", "Trabalho e economia"], ["m", "Moradia e infraestrutura"]];
+const ORDENS = { def_modelo_votos: "votos a recuperar", def_2022_votos: "votos perdidos desde 2022",
+  abst_modelo_votos_lula: "votos de Lula na abstenção acima da esperada", abst_2022_eleitores: "eleitores a mais em casa que no 2º turno de 2022",
+  pop_2022: "habitantes" };
+let ROWS = [], RK = {}, N = 0, DEST = null, limite = 50, modo = "r";
+let stc = { k: "def_modelo_votos", asc: false };   // ordenação da tabela completa
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function td(txt, cls) { const c = document.createElement("td"); if (txt instanceof Node) c.append(txt); else if (txt != null) c.textContent = txt; if (cls) c.className = cls; return c; }
 
-  const resp = await fetch("dados/ranking_municipios.json");
-  const D = await resp.json();
+// ---- mesmas regras do ranking_municipios_110.py
+function acao(r) {
+  const C = r.def_modelo_pp != null && r.def_modelo_pp >= 1, A = r.abst_modelo_pp != null && r.abst_modelo_pp >= 1, lid = !!r.lula_lidera;
+  if (C && A && lid) return ["Convencer e levar à urna", "faltou voto e faltou gente: as duas frentes rendem aqui."];
+  if (C && A) return ["Convencer quem saiu", "o voto é que faltou. A abstenção também está alta, mas Flávio lidera: mobilização só com conhecidos."];
+  if (C) return ["Convencer quem saiu", "o voto é que faltou; a abstenção está no padrão."];
+  if (A && lid) return ["Levar à urna", "Lula lidera e a abstenção ficou acima do esperado; o voto está no padrão."];
+  if (A) return ["Só com conhecidos", "abstenção acima do esperado, mas Flávio lidera: mobilização geral devolve mais voto a ele."];
+  if (r.def_2022_pp >= 1.3 * QUEDA_BR) return ["Maré nacional, não local", "caiu mais que o país desde 2022, mas o resultado é o esperado para lugares com esse perfil: resolve-se com mensagem geral, não com mutirão."];
+  return ["Manter", "Lula dentro ou acima do esperado e abstenção no padrão."];
+}
+const rk = (k, r) => RK[k] ? RK[k].get(r.cd_mun) : null;
+function posTxt(k, r) { const p = rk(k, r); return p ? `${fmtInt(p)}º do país` : ""; }
+
+function filtradas() {
+  const q = semAcento($("busca").value.trim()), uf = $("uf").value, pop = +$("pop").value, lid = $("lid").value, ac = $("ac").value;
+  const l = ROWS.filter(r => (!uf || r.uf === uf) && (r.pop_2022 || 0) >= pop &&
+    (lid === "" || (lid === "1") === !!r.lula_lidera) && (!ac || r.acao === ac) && (!q || r._n.includes(q)));
+  const k = modo === "c" ? stc.k : $("ordem").value;
+  const asc = modo === "c" ? stc.asc : false;
+  const txt = typeof (ROWS[0] || {})[k] === "string";
+  l.sort((a, b) => { const x = a[k], y = b[k]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    const d = txt ? String(x).localeCompare(String(y), "pt-BR") : x - y; return asc ? d : -d; });
+  return l;
+}
+
+// ---- células do resumo
+function celPorque(r, ordem) {
+  const t = td("", "porque"); t.dataset.rot = "Por que importa";
+  const linha = (k, node) => { if (k === ordem) { node.classList.add("ativo"); node.append(el("span", "rk", posTxt(k, r))); } return node; };
+  // 1. déficit contra o esperado
+  const dv = r.def_modelo_votos;
+  const d = el("span", "def" + (dv > 0 ? "" : " zero"), dv > 0 ? `≈ ${fmtMil(dv)} votos a recuperar` : "Lula no esperado ou acima");
+  if (ordem === "def_modelo_votos") d.append(el("span", "rk", posTxt("def_modelo_votos", r)));
+  t.append(d);
+  t.append(el("span", "meta", `Lula ${fmt1(r.lula_2026_pct)}% no 1º turno; esperado ${fmt1(r.lula_esperado_pct)}%` +
+    (r.def_modelo_pp > 0 ? ` (${fmt1(r.def_modelo_pp)} pontos abaixo)` : r.def_modelo_pp < 0 ? ` (${fmt1(-r.def_modelo_pp)} acima)` : "")));
+  // 2. queda desde 2022 (1º turno)
+  const qd = r.def_2022_pp;
+  if (qd != null) {
+    const m = el("span", "meta");
+    m.append(el("span", qd > 0 ? "cai" : "sobe", (qd > 0 ? "caiu " : "subiu ") + fmt1(Math.abs(qd)) + " pontos"),
+      ` desde o 1º turno de 2022` + (qd > 0 && r.def_2022_votos > 0 ? ` (≈ ${fmtMil(r.def_2022_votos)} votos)` : "") +
+      (qd >= 2 * QUEDA_BR ? ", mais que o dobro da queda nacional" : ""));
+    t.append(linha("def_2022_votos", m));
+  }
+  // 3. abstenção contra a esperada
+  const ex = r.abst_modelo_pp, ab = r.abst_2026_pct, lid = !!r.lula_lidera;
+  let s;
+  if (ex == null) s = `abstenção de ${fmt1(ab)}%`;
+  else if (ex >= 1 && lid) s = `abstenção de ${fmt1(ab)}%, ${fmt1(ex)} pontos acima da esperada; Lula lidera: ≈ ${fmtMil(r.abst_modelo_votos_lula)} votos dele em casa`;
+  else if (ex >= 1) s = `abstenção de ${fmt1(ab)}%, ${fmt1(ex)} pontos acima da esperada, mas Flávio lidera`;
+  else if (ex > -1) s = `abstenção de ${fmt1(ab)}%, no esperado`;
+  else s = `abstenção de ${fmt1(ab)}%, ${fmt1(-ex)} pontos abaixo da esperada`;
+  t.append(linha("abst_modelo_votos_lula", el("span", "meta", s)));
+  // 4. abstenção contra o 2º turno de 2022
+  const d2 = r.abst_2022_pp;
+  const s2 = d2 >= 0.5 ? `≈ ${fmtMil(r.abst_2022_eleitores)} eleitores a mais em casa que no 2º turno de 2022`
+    : d2 > -0.5 ? "abstenção igual à do 2º turno de 2022" : `menos abstenção que no 2º turno de 2022 (${fmt1(-d2)} pontos)`;
+  t.append(linha("abst_2022_eleitores", el("span", "meta", s2)));
+  return t;
+}
+function celAcao(r) {
+  const [a, mot] = acao(r);
+  const t = td("", "acao " + (ACOES[a] || "")); t.dataset.rot = "O que fazer";
+  t.append(el("span", "ac", a), el("span", "mot", mot));
+  const lk = el("a", "lk", "quem do campo aliado tem voto aqui ↗");
+  lk.href = "https://aliados-2t.vercel.app/cidades#q=" + encodeURIComponent(r.municipio); lk.target = "_blank"; lk.rel = "noopener";
+  t.append(lk);
+  return t;
+}
+function celGov(t, cd, tema) {
+  t.replaceChildren();
+  if (!DEST) { t.append(el("span", "nada", "…")); return; }
+  const d = (DEST[cd] || {})[tema] || [];
+  if (!d.length) { t.append(el("span", "nada", "nada acima dos 20% mais altos")); return; }
+  const chip = ([rot, med, p]) => {
+    const c = el("span", "chip" + (p >= 95 ? " f1" : ""), `${rot}: ${med}`);
+    c.append(el("small", null, p >= 99 ? "top 1%" : `top ${100 - p}%`));
+    c.title = `${rot}: ${med} — mais que ${p}% dos municípios do país`;
+    return c;
+  };
+  for (const x of d.slice(0, 2)) t.append(chip(x));
+  if (d.length > 2) {
+    const b = el("button", "mais-chips", `+${d.length - 2}`); b.type = "button"; b.title = "ver os outros destaques";
+    b.onclick = () => { b.remove(); for (const x of d.slice(2)) t.append(chip(x)); };
+    t.append(b);
+  }
+}
+function pintaResumo(l) {
+  const ordem = $("ordem").value;
+  $("cab").replaceChildren();
+  const tr0 = document.createElement("tr");
+  for (const h of ["#", "Cidade", "Por que importa", "O que fazer", ...TEMAS.map(x => x[1])]) tr0.append(el("th", null, h));
+  $("cab").append(tr0);
+  const corpo = $("corpo"); corpo.replaceChildren();
+  for (const [i, r] of l.slice(0, limite).entries()) {
+    const tr = document.createElement("tr"); tr.dataset.cd = String(r.cd_mun);
+    tr.append(td(String(i + 1)));
+    const t1 = td("", "lugar");
+    t1.append(el("span", "nm", `${r.municipio} (${r.uf})`));
+    t1.append(el("span", "meta", `${fmtMil(r.pop_2022)} moradores · ${fmtMil(r.validos_2026)} votos válidos`));
+    t1.append(el("span", "meta", `Lula ${fmt1(r.lula_2026_pct)}% × Flávio ${fmt1(r.flavio_2026_pct)}%` + (ordem === "pop_2022" ? " · " + posTxt("pop_2022", r) : "")));
+    tr.append(t1, celPorque(r, ordem), celAcao(r));
+    for (const [tema, rot] of TEMAS) { const t4 = td("", "gov"); t4.dataset.rot = rot; t4.dataset.tema = tema; celGov(t4, String(r.cd_mun), tema); tr.append(t4); }
+    corpo.append(tr);
+  }
+  const tot = l.reduce((s, r) => s + (r[ordem] > 0 ? r[ordem] : 0), 0);
+  const res = $("resumo"); res.replaceChildren();
+  res.append(el("b", null, fmtInt(l.length)), ` cidade${l.length === 1 ? "" : "s"}`);
+  if (ordem !== "pop_2022") res.append("; ", el("b", null, "≈ " + fmtMil(tot)), ` ${ORDENS[ordem]} somados.`); else res.append(".");
+  const b = el("button", null, "ver a tabela completa, com todas as colunas"); b.type = "button";
+  b.onclick = () => { modo = "c"; limite = 100; pinta(); }; res.append(" ", b);
+}
+
+// ---- tabela completa (todas as colunas, posição nacional em cada uma)
+const COLS = [
+  { k: "municipio", rot: "Município", g: "", tipo: "txt" }, { k: "uf", rot: "UF", g: "", tipo: "txt" },
+  { k: "pop_2022", rot: "População 2022", g: "", tipo: "int" },
+  { k: "lula_2026_pct", rot: "Lula 2026", g: "Voto (% dos válidos)", tipo: "pct" },
+  { k: "lula_2022t1_pct", rot: "Lula 2022 (1T)", g: "Voto (% dos válidos)", tipo: "pct" },
+  { k: "lula_esperado_pct", rot: "Lula esperado", g: "Voto (% dos válidos)", tipo: "pct" },
+  { k: "def_modelo_pp", rot: "vs modelo (pp)", g: "Déficit de votos de Lula", tipo: "pp" },
+  { k: "def_modelo_votos", rot: "vs modelo (votos)", g: "Déficit de votos de Lula", tipo: "int" },
+  { k: "def_2022_pp", rot: "vs 2022 1T (pp)", g: "Déficit de votos de Lula", tipo: "pp" },
+  { k: "def_2022_votos", rot: "vs 2022 1T (votos)", g: "Déficit de votos de Lula", tipo: "int" },
+  { k: "abst_2026_pct", rot: "Abstenção 2026", g: "Abstenção", tipo: "pct" },
+  { k: "abst_modelo_pp", rot: "vs modelo (pp)", g: "Abstenção", tipo: "pp" },
+  { k: "abst_modelo_votos_lula", rot: "vs modelo (votos de Lula)", g: "Abstenção", tipo: "int" },
+  { k: "abst_2022_pp", rot: "vs 2022 2T (pp)", g: "Abstenção", tipo: "pp" },
+  { k: "abst_2022_eleitores", rot: "vs 2022 2T (eleitores)", g: "Abstenção", tipo: "int" },
+  { k: "abst_2022_votos_lula", rot: "vs 2022 2T (votos de Lula)", g: "Abstenção", tipo: "int" },
+  { k: "bolsa_familia_pct_pop", rot: "Bolsa Família", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "cadunico_pct_pop", rot: "CadÚnico", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "bpc_pct_pop", rot: "BPC", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "farmacia_popular_pct_pop", rot: "Farmácia Popular", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "pe_de_meia_pct_pop", rot: "Pé-de-Meia", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "mei_pct_pop", rot: "MEI", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "emprego_formal_pct_pop", rot: "Emprego formal", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "mcmv_por_100hab", rot: "MCMV (por 100 hab.)", g: "Programas federais, % da população", tipo: "pct" },
+];
+const numFmt = (c, v) => c.tipo === "int" ? fmtInt(v) : c.tipo === "pp" ? (v > 0 ? "+" : "") + fmt1(v) : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+function pintaCompleta(l) {
+  const cab = $("cab"); cab.replaceChildren();
+  const g1 = el("tr", "grp"), g2 = el("tr", "col");
+  g1.append(el("th", "fx", "")); g2.append(el("th", "fx", "#"));
+  let prev = null;
+  COLS.forEach((c, i) => {
+    const ini = c.g !== prev && i > 0;
+    if (c.g !== prev) { const h = el("th", ini ? "ini" : "", c.g); h.colSpan = COLS.filter(x => x.g === c.g).length; g1.append(h); prev = c.g; }
+    const h = el("th", [c.tipo === "txt" ? "txt" : "", ini ? "ini" : "", c.k === stc.k ? "ord" + (stc.asc ? " asc" : "") : "", i === 0 ? "fx fx2" : ""].join(" ").trim(), c.rot);
+    h.onclick = () => { if (stc.k === c.k) stc.asc = !stc.asc; else { stc.k = c.k; stc.asc = c.tipo === "txt"; } pinta(); };
+    g2.append(h);
+  });
+  cab.append(g1, g2);
+  const corpo = $("corpo"); corpo.replaceChildren();
+  for (const [i, r] of l.slice(0, limite).entries()) {
+    const tr = document.createElement("tr");
+    tr.append(td(String(i + 1), "fx"));
+    COLS.forEach((c, j) => {
+      const ini = j > 0 && c.g !== COLS[j - 1].g, v = r[c.k];
+      if (c.tipo === "txt") { tr.append(td(v == null ? "" : v, "txt" + (c.k === "municipio" ? " fx fx2" : "") + (ini ? " ini" : "") + (c.k === stc.k ? " ord" : ""))); return; }
+      const t = td("", (v != null && v < 0 ? "neg" : "") + (ini ? " ini" : "") + (c.k === stc.k ? " ord" : ""));
+      if (v == null) { t.textContent = "–"; tr.append(t); return; }
+      const p = rk(c.k, r);
+      if (p && c.g.startsWith("Programas")) { const q = p / N; t.classList.add(q <= .1 ? "f1" : q <= .25 ? "f2" : q <= .5 ? "f3" : "x"); }
+      t.append(numFmt(c, v)); if (p) { const s = el("span", "rk", `${fmtInt(p)}º`); s.title = `${p}º entre ${fmtInt(N)} municípios`; t.append(s); }
+      tr.append(t);
+    });
+    corpo.append(tr);
+  }
+  const res = $("resumo"); res.replaceChildren();
+  res.append(el("b", null, fmtInt(l.length)), ` cidades. Clique no cabeçalho para ordenar; a posição nacional vem depois de cada número; azul = programas em que a cidade está na metade de cima, nos 25% ou nos 10% mais altos do país. `);
+  const b = el("button", null, "voltar ao resumo"); b.type = "button"; b.onclick = () => { modo = "r"; limite = 50; pinta(); }; res.append(b);
+}
+function pinta() {
+  $("tab").className = modo === "c" ? "completa" : "";
+  $("ordem").style.display = modo === "c" ? "none" : "";
+  const l = filtradas();
+  if (modo === "c") pintaCompleta(l); else pintaResumo(l);
+  $("mais").style.display = l.length > limite ? "block" : "none";
+  $("mais").textContent = `Mostrar mais (${fmtInt(Math.min(100, l.length - limite))} de ${fmtInt(l.length)})`;
+  const p = new URLSearchParams(); if (modo === "c") p.set("m", "c"); p.set("o", modo === "c" ? stc.k : $("ordem").value);
+  if (modo === "c" && stc.asc) p.set("d", "a");
+  for (const id of ["uf", "pop", "lid", "ac"]) if ($(id).value && $(id).value !== "0") p.set(id, $(id).value);
+  if ($("busca").value.trim()) p.set("q", $("busca").value.trim());
+  history.replaceState(null, "", "#" + p.toString());
+}
+async function inicia() {
+  const D = await (await fetch("dados/ranking_municipios.json")).json();
   const ix = Object.fromEntries(D.cols.map((c, i) => [c, i]));
-  const rows = D.rows.map(r => { const o = {}; for (const c of D.cols) o[c] = r[ix[c]]; o._n = norm(o.municipio); return o; });
-  const N = rows.length;
-  const RK = {};
-  for (const k of RANKED) {
-    const ord = rows.filter(r => r[k] != null).sort((a, b) => b[k] - a[k]);
+  ROWS = D.rows.map(r => { const o = {}; for (const c of D.cols) o[c] = r[ix[c]]; o._n = semAcento(o.municipio); return o; });
+  N = ROWS.length;
+  for (const c of COLS) if (c.tipo !== "txt") {
+    const ord = ROWS.filter(r => r[c.k] != null).sort((a, b) => b[c.k] - a[c.k]);
     const m = new Map(); let pos = 0, prev = null;
-    ord.forEach((r, i) => { if (r[k] !== prev) { pos = i + 1; prev = r[k]; } m.set(r.cd_mun, pos); });
-    RK[k] = m;
+    ord.forEach((r, i) => { if (r[c.k] !== prev) { pos = i + 1; prev = r[c.k]; } m.set(r.cd_mun, pos); });
+    RK[c.k] = m;
   }
-  const rk = (k, r) => RK[k] ? RK[k].get(r.cd_mun) : null;
-  const faixaDe = q => q <= .10 ? "f1" : q <= .25 ? "f2" : q <= .50 ? "f3" : "";
-  const faixaTxt = q => q <= .10 ? "10% mais altos do país" : q <= .25 ? "25% mais altos" : "metade de cima";
-
-  function porque(r) {
-    const s = []; const pp = r.def_modelo_pp, pl = r.lula_2026_pct;
-    if (pp == null) s.push(`Lula teve ${f1(pl)}%.`);
-    else if (pp >= 1) s.push(`Lula teve ${f1(pl)}%, ${f1(pp)} pontos abaixo do esperado para o perfil da cidade (${mil(r.def_modelo_votos)} votos, ${fi(rk("def_modelo_votos", r))}º do país).`);
-    else if (pp > -1) s.push(`Lula teve ${f1(pl)}%, dentro do esperado para o perfil da cidade.`);
-    else s.push(`Lula teve ${f1(pl)}%, ${f1(-pp)} pontos acima do esperado para o perfil da cidade.`);
-    const qd = r.def_2022_pp;
-    if (qd >= 1) {
-      const raz = qd / QUEDA_BR;
-      const comp = raz >= 2 ? "mais que o dobro da queda nacional" : raz >= 1.3 ? "acima da queda nacional de 3,3" : raz >= 0.7 ? "parecido com a queda nacional de 3,3" : "menos que a queda nacional de 3,3";
-      s.push(`Caiu ${f1(qd)} pontos desde o 1º turno de 2022, ${comp} (${mil(r.def_2022_votos)} votos).`);
-    } else if (qd > -1) s.push("Fatia igual à do 1º turno de 2022.");
-    else s.push(`Subiu ${f1(-qd)} pontos desde o 1º turno de 2022.`);
-    const ex = r.abst_modelo_pp, ab = r.abst_2026_pct, lid = !!r.lula_lidera;
-    if (ex == null) s.push(`Abstenção de ${f1(ab)}%.`);
-    else if (ex >= 1 && lid) s.push(`Abstenção de ${f1(ab)}%, ${f1(ex)} pontos acima da esperada, e Lula lidera (${f1(pl)} a ${f1(r.flavio_2026_pct)}): ${mil(r.abst_modelo_votos_lula)} votos dele ficaram em casa.`);
-    else if (ex >= 1) s.push(`Abstenção de ${f1(ab)}%, ${f1(ex)} pontos acima da esperada, mas Flávio lidera: levar todo mundo à urna devolve mais voto a ele.`);
-    else if (ex > -1) s.push(`Abstenção de ${f1(ab)}%, dentro do esperado.`);
-    else s.push(`Abstenção de ${f1(ab)}%, ${f1(-ex)} pontos abaixo da esperada.`);
-    const d = r.abst_2022_pp;
-    if (d >= 0.5) s.push(`${mil(r.abst_2022_eleitores)} eleitores a mais em casa que no 2º turno de 2022.`);
-    else if (d > -0.5) s.push("Abstenção igual à do 2º turno de 2022.");
-    else s.push(`Menos abstenção que no 2º turno de 2022 (${f1(-d)} pontos).`);
-    return s.join(" ");
-  }
-  function acao(r) {
-    const C = r.def_modelo_pp != null && r.def_modelo_pp >= 1, A = r.abst_modelo_pp != null && r.abst_modelo_pp >= 1, lid = !!r.lula_lidera;
-    if (C && A && lid) return ["Convencer e levar à urna", "faltou voto e faltou gente: as duas frentes rendem aqui."];
-    if (C && A) return ["Convencer quem saiu", "o voto é que faltou. A abstenção também está alta, mas Flávio lidera: mobilização só com conhecidos."];
-    if (C) return ["Convencer quem saiu", "o voto é que faltou; a abstenção está no padrão."];
-    if (A && lid) return ["Levar à urna", "Lula lidera e a abstenção ficou acima do esperado; o voto está no padrão."];
-    if (A) return ["Só com conhecidos", "abstenção acima do esperado, mas Flávio lidera: mobilização geral devolve mais voto a ele."];
-    if (r.def_2022_pp >= 1.3 * QUEDA_BR) return ["Maré nacional, não local", "caiu mais que o país desde 2022, mas o resultado é o esperado para lugares com esse perfil: resolve-se com mensagem geral, não com mutirão."];
-    return ["Manter", "Lula dentro ou acima do esperado e abstenção no padrão."];
-  }
-  function governo(r) {  // devolve lista [{q, nome, v, un}] já escolhida, ou {nada: texto}
-    const itens = [];
-    for (const [k, nome, un] of PROGS) { const v = r[k], p = rk(k, r); if (v == null || p == null) continue; itens.push({ q: p / N, nome, v, un }); }
-    itens.sort((a, b) => a.q - b.q);
-    let top = itens.filter(x => x.q <= .25).slice(0, 3); if (!top.length) top = itens.filter(x => x.q <= .5).slice(0, 2);
-    if (!top.length) {
-      if (!itens.length) return { nada: "Sem dados de programas." };
-      const x = itens[0]; return { nada: `Cobertura abaixo da mediana nacional em todos os programas; o mais alto é ${x.nome}, ${f1(x.v)}${x.un} (${fi(Math.round(100 * x.q))}º percentil).` };
-    }
-    return { top };
-  }
-  const governoTxt = r => { const g = governo(r); return g.nada || g.top.map(x => `${x.nome} ${f1(x.v)}${x.un} (${faixaTxt(x.q)})`).join("; ") + "."; };
-  window.__mun = { rows, porque, acao, governoTxt };  // para o teste automatizado
-
-  document.getElementById("gerado").textContent = D.meta && D.meta.gerado ? "Tabela gerada em " + D.meta.gerado.split("-").reverse().join("/") + "." : "";
-  const ufs = [...new Set(rows.map(r => r.uf))].sort();
-  const selUf = document.getElementById("uf");
-  for (const u of ufs) { const o = document.createElement("option"); o.value = u; o.textContent = u; selUf.appendChild(o); }
-  const selAc = document.getElementById("ac");
-  for (const a of Object.keys(ACOES)) { const o = document.createElement("option"); o.value = a; o.textContent = a; selAc.appendChild(o); }
-  const selOrd = document.getElementById("ord");
-  for (const g of REGUAS) { const o = document.createElement("option"); o.value = g.k; o.textContent = "Ordenar por: " + g.nome; selOrd.appendChild(o); }
-
-  const st = { m: "r", k: "def_modelo_votos", asc: false, uf: "", pop: 0, lid: "", ac: "", q: "", lim: 100 };
-  const h = location.hash.slice(1);
-  if (h) {
-    const p = new URLSearchParams(h);
-    if (p.get("m") === "c") st.m = "c";
-    if (p.get("o") && ix[p.get("o")] != null) st.k = p.get("o");
-    if (p.get("d") === "a") st.asc = true;
-    if (p.get("uf") && /^[A-Z]{2}$/.test(p.get("uf"))) st.uf = p.get("uf");
-    if (p.get("pop")) st.pop = +p.get("pop") || 0;
-    if (p.get("lid") === "0" || p.get("lid") === "1") st.lid = p.get("lid");
-    if (p.get("ac") && ACOES[p.get("ac")]) st.ac = p.get("ac");
-  }
-  selUf.value = st.uf; document.getElementById("pop").value = String(st.pop); document.getElementById("lid").value = st.lid; selAc.value = st.ac;
-
-  function filtra() {
-    return rows.filter(r => (!st.uf || r.uf === st.uf) && (r.pop_2022 || 0) >= st.pop &&
-      (st.lid === "" || (st.lid === "1") === !!r.lula_lidera) && (!st.q || r._n.includes(st.q)) &&
-      (!st.ac || r.acao === st.ac));
-  }
-  function ordena(f) {
-    const c = BY[st.k];
-    f.sort((a, b) => {
-      const x = a[st.k], y = b[st.k];
-      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
-      const d = c.tipo === "txt" ? String(x).localeCompare(String(y), "pt-BR") : x - y;
-      return st.asc ? d : -d;
-    });
-    return f;
-  }
-  function numFmt(c, v) { return c.tipo === "int" ? fmtInt.format(v) : c.tipo === "pp" ? (v > 0 ? "+" : "") + fmt1.format(v) : fmt2.format(v); }
-
-  // ---------- tabela completa
-  function cabecalhoCompleta() {
-    const thead = document.querySelector("#t thead");
-    let g1 = '<tr class="grp"><th class="fx"></th>', g2 = '<tr class="col"><th class="fx">#</th>';
-    let prevG = null;
-    COLS.forEach((c, i) => {
-      const ini = c.g !== prevG && i > 0;
-      if (c.g !== prevG) { const span = COLS.filter(x => x.g === c.g).length; g1 += `<th colspan="${span}" class="${ini ? "ini" : ""}">${esc(c.g)}</th>`; prevG = c.g; }
-      const cls = [c.tipo === "txt" ? "txt" : "", ini ? "ini" : "", c.k === st.k ? "ord" + (st.asc ? " asc" : "") : "", i === 0 ? "fx fx2" : ""].join(" ");
-      g2 += `<th data-k="${esc(c.k)}" class="${cls}" title="${esc(c.t || "")}">${esc(c.rot)}</th>`;
-    });
-    thead.innerHTML = g1 + "</tr>" + g2 + "</tr>";
-    thead.querySelectorAll("th[data-k]").forEach(th => th.addEventListener("click", () => {
-      const k = th.dataset.k; const c = BY[k];
-      if (st.k === k) st.asc = !st.asc; else { st.k = k; st.asc = c.tipo === "txt"; }
-      st.lim = 100; render();
-    }));
-  }
-  function celula(c, r, ord, ini) {
-    const v = r[c.k];
-    const base = (ini ? " ini" : "") + (ord ? " ord" : "");
-    if (c.tipo === "txt") return `<td class="txt${c.k === "municipio" ? " fx fx2" : ""}${base}">${esc(v == null ? "" : v)}</td>`;
-    if (v == null) return `<td class="nulo${base}">–</td>`;
-    const p = rk(c.k, r);
-    let faixa = "";
-    if (p && c.g.startsWith("Programas")) faixa = " " + faixaDe(p / N);
-    return `<td class="${v < 0 ? "neg" : ""}${base}${faixa}">${numFmt(c, v)}${p ? `<span class="rk" title="${p}º entre ${fmtInt.format(N)} municípios">${fmtInt.format(p)}º</span>` : ""}</td>`;
-  }
-  function renderCompleta(f) {
-    cabecalhoCompleta();
-    const inis = COLS.map((cc, i) => i > 0 && cc.g !== COLS[i - 1].g);
-    document.querySelector("#t tbody").innerHTML = f.slice(0, st.lim).map((r, i) => `<tr><td class="pos fx">${i + 1}</td>` + COLS.map((cc, j) => celula(cc, r, cc.k === st.k, inis[j])).join("") + "</tr>").join("");
-  }
-
-  // ---------- resumo
-  function renderResumo(f) {
-    const g = REGUAS.find(x => x.k === st.k) || { k: st.k, nome: BY[st.k].rot, un: BY[st.k].rot };
-    const c = BY[st.k];
-    document.querySelector("#t thead").innerHTML = `<tr><th>#</th><th>Lugar</th><th class="num ord">${esc(g.nome)}</th><th>Por quê</th><th>O que fazer</th><th>O que o governo faz ali</th></tr>`;
-    document.querySelector("#t tbody").innerHTML = f.slice(0, st.lim).map((r, i) => {
-      const v = r[st.k]; const p = rk(st.k, r);
-      const [a, mot] = acao(r); const gv = governo(r);
-      const num = v == null ? '<span class="v neg">–</span>' :
-        `<span class="v${v < 0 ? " neg" : ""}">${numFmt(c, v)}</span>` + (p ? `<span class="rk2">${fmtInt.format(p)}º do país</span>` : "") + `<span class="un">${esc(g.un)}</span>`;
-      const govHtml = gv.nada ? `<span class="nada">${esc(gv.nada)}</span>` :
-        gv.top.map(x => `<span class="chip ${faixaDe(x.q)}" title="${esc(faixaTxt(x.q))}">${esc(x.nome)} ${esc(f1(x.v) + x.un)}</span>`).join("");
-      return `<tr><td class="pos">${i + 1}</td>` +
-        `<td class="lugar"><b>${esc(r.municipio)}</b>, ${esc(r.uf)}<small>${fmtInt.format(r.pop_2022 || 0)} hab. · Lula ${f1(r.lula_2026_pct)}% × Flávio ${f1(r.flavio_2026_pct)}%</small></td>` +
-        `<td class="num" data-l="${esc(g.nome)}">${num}</td>` +
-        `<td class="pq" data-l="Por quê">${esc(porque(r))}</td>` +
-        `<td class="acao ${ACOES[a] || ""}" data-l="O que fazer"><b>${esc(a)}</b><span>${esc(mot)}</span></td>` +
-        `<td class="gov" data-l="O que o governo faz ali">${govHtml}</td></tr>`;
-    }).join("");
-  }
-
-  function render() {
-    const t = document.getElementById("t"), tw = document.getElementById("tw");
-    t.className = st.m === "c" ? "completa" : "sum"; tw.classList.toggle("sum-wrap", st.m !== "c");
-    document.getElementById("m-r").classList.toggle("ativo", st.m !== "c");
-    document.getElementById("m-c").classList.toggle("ativo", st.m === "c");
-    selOrd.style.display = st.m === "c" ? "none" : ""; selOrd.value = REGUAS.some(x => x.k === st.k) ? st.k : "";
-    const f = ordena(filtra());
-    if (st.m === "c") renderCompleta(f); else renderResumo(f);
-    const c = BY[st.k];
-    const b = document.getElementById("mais"); b.style.display = f.length > st.lim ? "block" : "none";
-    b.textContent = `Mostrar mais ${Math.min(100, f.length - st.lim)} (de ${fmtInt.format(f.length)})`;
-    let soma = "";
-    if (SOMAVEL.has(c.k)) { const pos = f.reduce((s, r) => s + (r[c.k] > 0 ? r[c.k] : 0), 0); soma = ` · soma dos valores positivos: <b>${fmtInt.format(pos)}</b>`; }
-    document.getElementById("resumo").innerHTML = `<b>${fmtInt.format(f.length)}</b> municípios` + (f.length !== rows.length ? ` de ${fmtInt.format(rows.length)}` : "") + soma + `. Ordenado por “${esc((REGUAS.find(x => x.k === st.k) || c).nome || c.rot)}”${st.asc ? " (crescente)" : ""}.`;
-    const p = new URLSearchParams(); if (st.m === "c") p.set("m", "c"); p.set("o", st.k); if (st.asc) p.set("d", "a"); if (st.uf) p.set("uf", st.uf); if (st.pop) p.set("pop", st.pop); if (st.lid) p.set("lid", st.lid); if (st.ac) p.set("ac", st.ac);
-    history.replaceState(null, "", "#" + p.toString());
-  }
-  document.getElementById("mais").addEventListener("click", () => { st.lim += 100; render(); });
-  document.getElementById("m-r").addEventListener("click", () => { st.m = "r"; st.lim = 100; render(); });
-  document.getElementById("m-c").addEventListener("click", () => { st.m = "c"; st.lim = 100; render(); });
-  selOrd.addEventListener("change", e => { st.k = e.target.value; st.asc = false; st.lim = 100; render(); });
-  selUf.addEventListener("change", e => { st.uf = e.target.value; st.lim = 100; render(); });
-  selAc.addEventListener("change", e => { st.ac = e.target.value; st.lim = 100; render(); });
-  document.getElementById("pop").addEventListener("change", e => { st.pop = +e.target.value; st.lim = 100; render(); });
-  document.getElementById("lid").addEventListener("change", e => { st.lid = e.target.value; st.lim = 100; render(); });
-  let tq; document.getElementById("q").addEventListener("input", e => { clearTimeout(tq); tq = setTimeout(() => { st.q = norm(e.target.value.trim()); st.lim = 100; render(); }, 120); });
-  render();
-})();
+  const ufs = [...new Set(ROWS.map(r => r.uf))].sort();
+  for (const u of ufs) { const o = el("option", null, u); o.value = u; $("uf").append(o); }
+  for (const a of Object.keys(ACOES)) { const o = el("option", null, a); o.value = a; $("ac").append(o); }
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("m") === "c") modo = "c";
+  if (h.get("o") && ix[h.get("o")] != null) { if (modo === "c") stc.k = h.get("o"); else if ([...$("ordem").options].some(o => o.value === h.get("o"))) $("ordem").value = h.get("o"); }
+  if (h.get("d") === "a") stc.asc = true;
+  if (h.get("uf") && /^[A-Z]{2}$/.test(h.get("uf"))) $("uf").value = h.get("uf");
+  if (h.get("pop")) $("pop").value = h.get("pop");
+  if (h.get("lid") === "0" || h.get("lid") === "1") $("lid").value = h.get("lid");
+  if (h.get("ac") && ACOES[h.get("ac")]) $("ac").value = h.get("ac");
+  if (h.get("q")) $("busca").value = h.get("q");
+  for (const id of ["busca", "uf", "pop", "lid", "ac", "ordem"]) $(id).addEventListener("input", () => { limite = modo === "c" ? 100 : 50; pinta(); });
+  $("mais").addEventListener("click", () => { limite += 100; pinta(); });
+  $("abre-completa").addEventListener("click", () => { modo = "c"; limite = 100; pinta(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  pinta();
+  fetch("dados/destaques_mun.json").then(r => r.json()).then(d => {
+    DEST = d;
+    document.querySelectorAll("#corpo tr").forEach(tr => { const cd = tr.dataset.cd; if (cd) tr.querySelectorAll("td.gov").forEach(t => celGov(t, cd, t.dataset.tema)); });
+  }).catch(() => { DEST = {}; pinta(); });
+}
+inicia();
 </script>
 </body>
 </html>
