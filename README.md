@@ -56,6 +56,33 @@ padrão, mais). Navegação por Brasil, estado e município, busca de
 endereço que encontra a região mais próxima, e perfil socioeconômico de
 cada região.
 
+## Tabela por município: duas réguas para o déficit e duas para a abstenção
+
+`site/municipios.html` (no ar em <https://mutirao-2t.vercel.app/municipios>)
+e `dados_modelo/ranking_municipios.csv` (uma linha por município, 5.570)
+trazem, lado a lado, para ranquear por qualquer uma:
+
+| métrica | contra o quê | colunas |
+|---|---|---|
+| déficit de votos de Lula | o **esperado pelo modelo** (soma dos setores) | `def_modelo_pp`, `def_modelo_votos`, `rk_def_modelo_*` |
+| déficit de votos de Lula | o **1º turno de 2022** (oficial TSE): queda da fatia × válidos de 2026 | `def_2022_pp`, `def_2022_votos`, `rk_def_2022_*` |
+| abstenção | a **esperada pelo modelo** (soma dos setores): excesso × aptos × fatia de Lula | `abst_modelo_pp`, `abst_modelo_votos_lula`, `abst_modelo_saldo_lula_flavio`, `rk_abst_modelo_*` |
+| abstenção | o **2º turno de 2022** (oficial TSE): quem votou naquele dia e faltou agora | `abst_2022_pp`, `abst_2022_eleitores`, `abst_2022_votos_lula`, `rk_abst_2022_*` |
+
+Mais a fatia de Lula (2022 T1/T2, 2026, esperada), abstenção oficial
+(2022 T1/T2, 2026), se Lula lidera, e a cobertura de programas federais em
+**% da população** do Censo 2022 (Bolsa Família, CadÚnico, BPC, Farmácia
+Popular, Pé-de-Meia, MEI, emprego formal, Minha Casa Minha Vida por 100
+hab.; MDS ago/2026 e ComunicaBR, meses de referência no cabeçalho da
+página). `rk_*` = posição nacional (1 = mais votos a recuperar / maior
+cobertura; negativos no fim). Script: `regioes/ranking_municipios_110.py`.
+As réguas de 2022 somam muito mais votos (4,2 mi na queda, 0,9 mi na
+abstenção) que as do modelo (0,65 mi e 0,44 mi) porque incluem a maré
+nacional; a correlação de postos entre as duas réguas de déficit é 0,33
+em votos e 0,61 em pontos. Em cerca de 1% dos municípios, pequenos, os
+setores do modelo de abstenção cobrem menos de 70% dos aptos oficiais e
+`abst_modelo_votos_lula` fica subestimado.
+
 ## Hospedar a sua versão
 
 O site é 100% estático. Três passos:
@@ -80,7 +107,7 @@ https://sua-url/`.
 ## Estrutura
 
 ```
-site/            o site pronto (index.html + dados pré-computados)
+site/            o site pronto (index.html + municipios.html + dados pré-computados)
   dados/         regioes*.json/geojson (3 visões × 3 cortes),
                  areas_mun.json / areas_dist.json (catálogos por unidade),
                  municipios.json (busca), regioes*.geojson (contornos)
@@ -90,7 +117,8 @@ regioes/         geradores de regiões das três visões + areas_95.py
                  (catálogos por município e distrito)
 tiles/           gerador do tileset + uploader Mapbox
 dados_modelo/    SAÍDAS dos modelos por setor censitário (parquet):
-                 permitem regenerar regiões e tiles sem o pipeline TSE
+                 permitem regenerar regiões e tiles sem o pipeline TSE;
+                 ranking_municipios.csv (tabela por município, 4 réguas)
 metricas/        bateria de validação dos modelos (JSON)
 pesquisa/        revisão de literatura (inferência ecológica,
                  transferência de votos, GOTV)

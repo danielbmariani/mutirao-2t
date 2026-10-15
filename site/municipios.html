@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Municípios: déficit de Lula e abstenção por duas réguas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Tabela dos 5.570 municípios com o déficit de votos de Lula no 1º turno de 2026 medido de dois jeitos (contra o esperado pelo modelo e contra o 1º turno de 2022), a abstenção medida de dois jeitos (contra a esperada e contra o 2º turno de 2022) e a cobertura de programas federais em % da população. Ordene por qualquer coluna, filtre por estado e baixe o CSV.">
+<link rel="canonical" href="https://mutirao-2t.vercel.app/municipios">
+<style>
+  :root { --acento: #8F1D21; --link: #27568B; --txt: #121212; --sub: #666;
+          --linha: #e8e8e8; --fundo: #fff; --faixa: #faf7f0; --neg: #8a8a8a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--fundo); color: var(--txt);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 22px 16px 48px; }
+  .topo a.volta { font-size: 12.5px; color: var(--link); text-decoration: none; }
+  h1 { font-size: 22px; line-height: 1.25; margin: 8px 0 8px; letter-spacing: -0.01em; }
+  .intro { font-size: 14px; line-height: 1.55; color: #333; max-width: 860px; margin: 0 0 6px; }
+  .intro b { font-weight: 600; }
+  .ctr { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin: 16px 0 10px; }
+  .ctr input, .ctr select { font: inherit; font-size: 13.5px; padding: 7px 9px;
+    border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; color: var(--txt); }
+  .ctr input[type=search] { width: 230px; max-width: 100%; }
+  .ctr .esp { flex: 1; }
+  .ctr a.btn { font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 11px;
+    border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; color: var(--txt);
+    text-decoration: none; cursor: pointer; }
+  .ctr a.btn:hover { border-color: #888; }
+  .resumo { font-size: 12.5px; color: var(--sub); margin: 0 0 8px; line-height: 1.5; }
+  .resumo b { color: var(--txt); font-variant-numeric: tabular-nums; }
+  .tw { overflow: auto; border: 1px solid var(--linha); border-radius: 10px;
+        max-height: calc(100vh - 120px); position: relative; }
+  table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; min-width: 1240px; }
+  thead th { position: sticky; background: #fff; z-index: 3; font-weight: 600; text-align: right;
+    padding: 6px 8px; border-bottom: 1px solid var(--linha); white-space: nowrap; color: #333;
+    cursor: pointer; user-select: none; }
+  thead tr.grp th { top: 0; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase;
+    color: #888; text-align: left; border-bottom: 0; padding-bottom: 0; cursor: default;
+    border-left: 1px solid var(--linha); }
+  thead tr.grp th:first-child { border-left: 0; }
+  thead tr.col th { top: 22px; }
+  thead th.ini { border-left: 1px solid var(--linha); }
+  thead th.ord { color: var(--acento); }
+  thead th.ord::after { content: " ▼"; font-size: 9px; }
+  thead th.ord.asc::after { content: " ▲"; }
+  thead th.txt { text-align: left; }
+  tbody td { padding: 5px 8px; border-bottom: 1px solid #f1f1f1; text-align: right;
+    font-variant-numeric: tabular-nums; white-space: nowrap; vertical-align: top; }
+  tbody td.txt { text-align: left; }
+  tbody td.ini { border-left: 1px solid var(--linha); }
+  tbody tr:hover td { background: var(--faixa); }
+  tbody td.neg { color: var(--neg); }
+  tbody td.ord { background: #fdf6f6; font-weight: 600; }
+  tbody tr:hover td.ord { background: #f6ecec; }
+  tbody td .rk { display: block; font-size: 10px; color: #999; font-weight: 400; line-height: 1.1; }
+  td.nulo { color: #bbb; }
+  th.fx, td.fx { position: sticky; left: 0; z-index: 2; background: #fff; }
+  thead th.fx { z-index: 4; }
+  th.fx2, td.fx2 { left: 38px; min-width: 150px; max-width: 220px; overflow: hidden;
+    text-overflow: ellipsis; box-shadow: 4px 0 6px -4px rgba(0,0,0,.12); }
+  td.pos { color: #999; font-size: 11px; }
+  tbody tr:hover td.fx { background: var(--faixa); }
+  .mais { display: block; width: 100%; margin: 10px 0 0; padding: 9px; font: inherit; font-size: 13px;
+    font-weight: 600; border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; cursor: pointer; }
+  details { margin-top: 22px; max-width: 860px; font-size: 13.5px; line-height: 1.55; color: #333; }
+  summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  details h3 { font-size: 13.5px; margin: 14px 0 4px; }
+  details p { margin: 6px 0; }
+  details ul { padding-left: 20px; margin: 6px 0; }
+  details li { margin: 3px 0; }
+  details a, .rod a { color: var(--link); }
+  .rod { font-size: 12px; color: var(--sub); margin-top: 22px; line-height: 1.5; }
+  @media (max-width: 640px) {
+    h1 { font-size: 19px; }
+    .ctr input[type=search] { width: 100%; }
+    th.fx2, td.fx2 { min-width: 120px; max-width: 150px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo"><a class="volta" href="./">← Mutirão do 2º turno: mapa</a></div>
+  <h1>Municípios: déficit de Lula e abstenção, por duas réguas cada</h1>
+  <p class="intro">Para cada um dos 5.570 municípios, <b>quantos votos faltaram a Lula</b> no 1º turno de
+  2026 medidos de dois jeitos: contra o <b>esperado pelo modelo</b> (o que lugares com o mesmo histórico e
+  perfil fizeram nesta eleição) e contra o <b>1º turno de 2022</b>. E <b>quanta abstenção houve a mais</b>, também
+  de dois jeitos: contra a <b>esperada</b> pelo modelo irmão e contra o <b>2º turno de 2022</b> (quem votou
+  naquele dia e faltou agora). Ao lado, a cobertura dos <b>programas federais em % da população</b>.
+  Clique no cabeçalho para ordenar; a coluna ordenada mostra a posição nacional de cada cidade.</p>
+  <div class="ctr">
+    <input id="q" type="search" placeholder="Buscar município…" aria-label="Buscar município">
+    <select id="uf" aria-label="Estado"><option value="">Todos os estados</option></select>
+    <select id="pop" aria-label="População mínima">
+      <option value="0">Qualquer população</option>
+      <option value="20000">20 mil habitantes ou mais</option>
+      <option value="50000">50 mil ou mais</option>
+      <option value="100000">100 mil ou mais</option>
+      <option value="500000">500 mil ou mais</option>
+    </select>
+    <select id="lid" aria-label="Quem lidera">
+      <option value="">Lula à frente ou atrás</option>
+      <option value="1">Só onde Lula lidera</option>
+      <option value="0">Só onde Flávio lidera</option>
+    </select>
+    <span class="esp"></span>
+    <a class="btn" href="dados/ranking_municipios.csv" download>Baixar CSV</a>
+    <a class="btn" href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+  <p class="resumo" id="resumo">Carregando…</p>
+  <div class="tw"><table id="t"><thead></thead><tbody></tbody></table></div>
+  <button class="mais" id="mais" style="display:none">Mostrar mais</button>
+
+  <details>
+    <summary>Como ler esta tabela</summary>
+    <h3>Déficit de votos de Lula</h3>
+    <p><b>Contra o modelo</b>: um modelo treinado nos 468 mil setores censitários do país prevê o voto de Lula
+    em 2026 a partir do voto de 2022 e 2018 e do perfil do Censo 2022. O déficit é o esperado menos o real,
+    somado nos setores do município. Positivo = Lula ficou abaixo do que lugares parecidos fizeram
+    nesta eleição; é o voto que destoa do padrão e, por isso, o mais sensível a ação local.
+    <b>Contra 2022</b>: a fatia de Lula no 1º turno de 2022 menos a de 2026, aplicada aos votos válidos de
+    2026 (resultado oficial do TSE). Inclui a maré nacional: no país a fatia caiu de 48,4% para 45,2%,
+    por isso quase todo município tem valor positivo nessa régua.</p>
+    <h3>Abstenção</h3>
+    <p><b>Contra o modelo</b>: a abstenção de 2026 menos a esperada por um modelo que usa o histórico de
+    abstenção, o perfil demográfico e a cobertura da biometria, nos setores do município. Os votos são o
+    excesso × eleitores aptos × fatia de Lula no lugar. Só faz sentido mobilizar onde Lula lidera; use o
+    filtro. Em cerca de 1% dos municípios, pequenos, os setores do modelo cobrem menos de 70% dos aptos
+    oficiais e o valor em votos fica subestimado. <b>Contra o 2º turno de 2022</b>: a abstenção de 2026 menos
+    a do 2º turno de 2022, oficial do TSE. A coluna de eleitores é esse excesso aplicado aos aptos de 2026
+    ("eleitores a mais em casa"); a de votos de Lula multiplica pela fatia dele em 2026, para ficar na
+    mesma moeda das outras colunas.</p>
+    <h3>Programas federais</h3>
+    <p>Em % da população do Censo 2022. Bolsa Família e CadÚnico: pessoas nas famílias beneficiárias ou
+    cadastradas (MDS, ago/2026). BPC: beneficiários (MDS, ago/2026). Farmácia Popular: pessoas atendidas
+    no ano até ago/2026. Pé-de-Meia: estudantes (até mar/2026). MEI: cadastrados (até jun/2026). Emprego
+    formal: vínculos (até jul/2026). Minha Casa, Minha Vida: moradias contratadas desde 2023 por 100
+    habitantes (até jul/2026; 382 municípios sem registro). Fonte: ComunicaBR, Secom/PR, salvo MDS.</p>
+    <h3>Cuidados</h3>
+    <ul>
+      <li>Ordenar por votos favorece cidades grandes; ordenar por pontos percentuais mostra intensidade.
+      As duas leituras se complementam.</li>
+      <li>Valores negativos (em cinza) significam que Lula ficou acima do esperado, ou que a abstenção
+      ficou abaixo da régua.</li>
+      <li>As réguas de 2022 somam muito mais votos que as do modelo porque incluem a queda que aconteceu
+      em todo lugar com o mesmo perfil. O modelo mede só o que destoa.</li>
+      <li>São medidas de território, não de pessoas. A passagem de urna para setor é estimativa.</li>
+    </ul>
+    <p>Metodologia completa e dados por setor: <a href="./">mapa do mutirão</a> e
+    <a href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">repositório no GitHub</a>
+    (arquivo <code>dados_modelo/ranking_municipios.csv</code>).</p>
+  </details>
+  <p class="rod">Por Daniel Mariani. Dados: TSE (resultados e comparecimento por seção, 2022 e 2026), IBGE
+  (Censo 2022), MDS (MI Social, ago/2026), ComunicaBR (Secom/PR, baixado em 15/10/2026). Licença CC BY 4.0.
+  <span id="gerado"></span></p>
+</div>
+
+<script>
+(async function () {
+  "use strict";
+  // Dados próprios, pré-computados (dados/ranking_municipios.json); todo texto passa por esc().
+  const COLS = [
+    { k: "municipio", rot: "Município", g: "", tipo: "txt" },
+    { k: "uf", rot: "UF", g: "", tipo: "txt" },
+    { k: "pop_2022", rot: "População 2022", g: "", tipo: "int", t: "População do Censo 2022 (IBGE)" },
+    { k: "lula_2026_pct", rot: "Lula 2026", g: "Voto (% dos válidos)", tipo: "pct", t: "Fatia de Lula nos votos válidos, 1º turno de 2026 (TSE)" },
+    { k: "lula_2022t1_pct", rot: "Lula 2022 (1T)", g: "Voto (% dos válidos)", tipo: "pct", t: "Fatia de Lula nos votos válidos, 1º turno de 2022 (TSE)" },
+    { k: "lula_esperado_pct", rot: "Lula esperado", g: "Voto (% dos válidos)", tipo: "pct", t: "Fatia prevista pelo modelo para 2026, somando os setores do município" },
+    { k: "def_modelo_pp", rot: "vs modelo (pp)", g: "Déficit de votos de Lula", tipo: "pp", t: "Esperado − real, em pontos percentuais. Positivo = faltaram votos" },
+    { k: "def_modelo_votos", rot: "vs modelo (votos)", g: "Déficit de votos de Lula", tipo: "int", t: "Déficit em votos: soma de (esperado − real) × válidos dos setores" },
+    { k: "def_2022_pp", rot: "vs 2022 1T (pp)", g: "Déficit de votos de Lula", tipo: "pp", t: "Fatia de 2022 (1T) − fatia de 2026, em pontos" },
+    { k: "def_2022_votos", rot: "vs 2022 1T (votos)", g: "Déficit de votos de Lula", tipo: "int", t: "Queda em pontos × votos válidos de 2026" },
+    { k: "abst_2026_pct", rot: "Abstenção 2026", g: "Abstenção", tipo: "pct", t: "Abstenção oficial no 1º turno de 2026, % dos aptos (TSE)" },
+    { k: "abst_modelo_pp", rot: "vs modelo (pp)", g: "Abstenção", tipo: "pp", t: "Abstenção real − esperada pelo modelo, em pontos (base: setores do modelo)" },
+    { k: "abst_modelo_votos_lula", rot: "vs modelo (votos de Lula)", g: "Abstenção", tipo: "int", t: "Excesso de abstenção × aptos × fatia de Lula, somado nos setores" },
+    { k: "abst_2022_pp", rot: "vs 2022 2T (pp)", g: "Abstenção", tipo: "pp", t: "Abstenção de 2026 − abstenção do 2º turno de 2022, em pontos (TSE)" },
+    { k: "abst_2022_eleitores", rot: "vs 2022 2T (eleitores)", g: "Abstenção", tipo: "int", t: "Eleitores a mais em casa: excesso × aptos de 2026" },
+    { k: "abst_2022_votos_lula", rot: "vs 2022 2T (votos de Lula)", g: "Abstenção", tipo: "int", t: "Eleitores a mais em casa × fatia de Lula em 2026" },
+    { k: "bolsa_familia_pct_pop", rot: "Bolsa Família", g: "Programas federais, % da população", tipo: "pct", t: "Pessoas nas famílias beneficiárias, % da população (MDS, ago/2026)" },
+    { k: "cadunico_pct_pop", rot: "CadÚnico", g: "Programas federais, % da população", tipo: "pct", t: "Pessoas cadastradas, % da população (MDS, ago/2026)" },
+    { k: "bpc_pct_pop", rot: "BPC", g: "Programas federais, % da população", tipo: "pct", t: "Beneficiários do BPC, % da população (MDS, ago/2026)" },
+    { k: "farmacia_popular_pct_pop", rot: "Farmácia Popular", g: "Programas federais, % da população", tipo: "pct", t: "Pessoas atendidas no ano, % da população (ComunicaBR, até ago/2026)" },
+    { k: "pe_de_meia_pct_pop", rot: "Pé-de-Meia", g: "Programas federais, % da população", tipo: "pct", t: "Estudantes no programa, % da população (ComunicaBR, até mar/2026)" },
+    { k: "mei_pct_pop", rot: "MEI", g: "Programas federais, % da população", tipo: "pct", t: "MEI cadastrados, % da população (ComunicaBR, até jun/2026)" },
+    { k: "emprego_formal_pct_pop", rot: "Emprego formal", g: "Programas federais, % da população", tipo: "pct", t: "Vínculos formais, % da população (ComunicaBR, até jul/2026)" },
+    { k: "mcmv_por_100hab", rot: "MCMV (por 100 hab.)", g: "Programas federais, % da população", tipo: "pct", t: "Moradias contratadas desde 2023 por 100 habitantes (ComunicaBR, até jul/2026)" },
+  ];
+  const SEM_RANK = new Set(["pop_2022", "lula_2026_pct", "lula_2022t1_pct", "lula_esperado_pct", "abst_2026_pct"]);
+  const RANKED = new Set(COLS.filter(c => c.tipo !== "txt" && !SEM_RANK.has(c.k)).map(c => c.k));
+  const fmtInt = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+  const fmt1 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const fmt2 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  const resp = await fetch("dados/ranking_municipios.json");
+  const D = await resp.json();
+  const ix = Object.fromEntries(D.cols.map((c, i) => [c, i]));
+  const rows = D.rows.map(r => { const o = {}; for (const c of D.cols) o[c] = r[ix[c]]; o._n = norm(o.municipio); return o; });
+  const RK = {};
+  for (const k of RANKED) {
+    const ord = rows.filter(r => r[k] != null).sort((a, b) => b[k] - a[k]);
+    const m = new Map(); let pos = 0, prev = null;
+    ord.forEach((r, i) => { if (r[k] !== prev) { pos = i + 1; prev = r[k]; } m.set(r.cd_mun, pos); });
+    RK[k] = m;
+  }
+  document.getElementById("gerado").textContent = D.meta && D.meta.gerado ? "Tabela gerada em " + D.meta.gerado.split("-").reverse().join("/") + "." : "";
+
+  const ufs = [...new Set(rows.map(r => r.uf))].sort();
+  const selUf = document.getElementById("uf");
+  for (const u of ufs) { const o = document.createElement("option"); o.value = u; o.textContent = u; selUf.appendChild(o); }
+
+  const st = { k: "def_modelo_votos", asc: false, uf: "", pop: 0, lid: "", q: "", lim: 200 };
+  const h = location.hash.slice(1);
+  if (h) {
+    const p = new URLSearchParams(h);
+    if (p.get("o") && ix[p.get("o")] != null) st.k = p.get("o");
+    if (p.get("d") === "a") st.asc = true;
+    if (p.get("uf") && /^[A-Z]{2}$/.test(p.get("uf"))) st.uf = p.get("uf");
+    if (p.get("pop")) st.pop = +p.get("pop") || 0;
+    if (p.get("lid") === "0" || p.get("lid") === "1") st.lid = p.get("lid");
+  }
+  selUf.value = st.uf; document.getElementById("pop").value = String(st.pop); document.getElementById("lid").value = st.lid;
+
+  function cabecalho() {
+    const thead = document.querySelector("#t thead");
+    let g1 = '<tr class="grp"><th class="fx"></th>', g2 = '<tr class="col"><th class="fx">#</th>';
+    let prevG = null;
+    COLS.forEach((c, i) => {
+      const ini = c.g !== prevG && i > 0;
+      if (c.g !== prevG) {
+        const span = COLS.filter(x => x.g === c.g).length;
+        g1 += `<th colspan="${span}" class="${ini ? "ini" : ""}">${esc(c.g)}</th>`; prevG = c.g;
+      }
+      const cls = [c.tipo === "txt" ? "txt" : "", ini ? "ini" : "", c.k === st.k ? "ord" + (st.asc ? " asc" : "") : "", i === 0 ? "fx fx2" : ""].join(" ");
+      g2 += `<th data-k="${esc(c.k)}" class="${cls}" title="${esc(c.t || "")}">${esc(c.rot)}</th>`;
+    });
+    thead.innerHTML = g1 + "</tr>" + g2 + "</tr>";
+    thead.querySelectorAll("th[data-k]").forEach(th => th.addEventListener("click", () => {
+      const k = th.dataset.k; const c = COLS.find(x => x.k === k);
+      if (st.k === k) st.asc = !st.asc; else { st.k = k; st.asc = c.tipo === "txt"; }
+      st.lim = 200; render();
+    }));
+  }
+
+  function filtra() {
+    return rows.filter(r => (!st.uf || r.uf === st.uf) && (r.pop_2022 || 0) >= st.pop &&
+      (st.lid === "" || (st.lid === "1") === !!r.lula_lidera) && (!st.q || r._n.includes(st.q)));
+  }
+  function celula(c, r, ord, ini) {
+    const v = r[c.k];
+    const base = (ini ? " ini" : "") + (ord ? " ord" : "");
+    if (c.tipo === "txt") return `<td class="txt${c.k === "municipio" ? " fx fx2" : ""}${base}">${esc(v == null ? "" : v)}</td>`;
+    if (v == null) return `<td class="nulo${base}">–</td>`;
+    const s = c.tipo === "int" ? fmtInt.format(v) : c.tipo === "pp" ? (v > 0 ? "+" : "") + fmt1.format(v) : fmt2.format(v);
+    const rk = ord && RK[c.k] ? RK[c.k].get(r.cd_mun) : null;
+    return `<td class="${v < 0 ? "neg" : ""}${base}">${s}${rk ? `<span class="rk">${rk}º no país</span>` : ""}</td>`;
+  }
+  function render() {
+    cabecalho();
+    const c = COLS.find(x => x.k === st.k);
+    const f = filtra();
+    f.sort((a, b) => {
+      const x = a[st.k], y = b[st.k];
+      if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+      const d = c.tipo === "txt" ? String(x).localeCompare(String(y), "pt-BR") : x - y;
+      return st.asc ? d : -d;
+    });
+    const inis = COLS.map((cc, i) => i > 0 && cc.g !== COLS[i - 1].g);
+    const tb = document.querySelector("#t tbody");
+    const vis = f.slice(0, st.lim);
+    tb.innerHTML = vis.map((r, i) => `<tr><td class="pos fx">${i + 1}</td>` + COLS.map((cc, j) => celula(cc, r, cc.k === st.k, inis[j])).join("") + "</tr>").join("");
+    const b = document.getElementById("mais"); b.style.display = f.length > st.lim ? "block" : "none";
+    b.textContent = `Mostrar mais ${Math.min(200, f.length - st.lim)} (de ${fmtInt.format(f.length)})`;
+    let soma = "";
+    if (c.tipo === "int" && RANKED.has(c.k)) {
+      const pos = f.reduce((s, r) => s + (r[c.k] > 0 ? r[c.k] : 0), 0);
+      soma = ` · soma dos valores positivos em “${esc(c.g ? c.g + ": " : "")}${esc(c.rot)}”: <b>${fmtInt.format(pos)}</b>`;
+    }
+    document.getElementById("resumo").innerHTML = `<b>${fmtInt.format(f.length)}</b> municípios` + (f.length !== rows.length ? ` de ${fmtInt.format(rows.length)}` : "") + soma + `. Ordenado por “${esc(c.rot)}”${st.asc ? " (crescente)" : ""}.`;
+    const p = new URLSearchParams(); p.set("o", st.k); if (st.asc) p.set("d", "a"); if (st.uf) p.set("uf", st.uf); if (st.pop) p.set("pop", st.pop); if (st.lid) p.set("lid", st.lid);
+    history.replaceState(null, "", "#" + p.toString());
+  }
+  document.getElementById("mais").addEventListener("click", () => { st.lim += 200; render(); });
+  selUf.addEventListener("change", e => { st.uf = e.target.value; st.lim = 200; render(); });
+  document.getElementById("pop").addEventListener("change", e => { st.pop = +e.target.value; st.lim = 200; render(); });
+  document.getElementById("lid").addEventListener("change", e => { st.lid = e.target.value; st.lim = 200; render(); });
+  let tq; document.getElementById("q").addEventListener("input", e => { clearTimeout(tq); tq = setTimeout(() => { st.q = norm(e.target.value.trim()); st.lim = 200; render(); }, 120); });
+  render();
+})();
+</script>
+</body>
+</html>

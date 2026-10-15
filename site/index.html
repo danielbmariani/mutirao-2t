@@ -210,6 +210,25 @@
   .card-sec-1 { border-top: 0; padding-top: 0; margin-top: 0; }
   .card-conv { font-size: 13px; font-weight: 600; color: var(--txt);
                margin: 8px 0 2px; }
+  /* ficha extra: dados oficiais (município / distrito / setor) */
+  .ficha-extra { margin-top: 10px; font-size: 12px; color: #555; }
+  .ficha-extra .ficha-sec { border-top: 1px solid #ececec; padding: 7px 0 3px; }
+  .ficha-extra summary { font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+    color: #888; text-transform: uppercase; cursor: pointer; list-style: none;
+    display: flex; justify-content: space-between; gap: 8px; }
+  .ficha-extra summary::-webkit-details-marker { display: none; }
+  .ficha-extra summary::before { content: "▸"; margin-right: 5px; color: #bbb;
+    font-size: 10px; }
+  .ficha-extra details[open] > summary::before { content: "▾"; }
+  .ficha-extra summary .n { font-weight: 400; color: #b5b5b5; letter-spacing: 0;
+    margin-left: auto; }
+  .ficha-kv { display: flex; justify-content: space-between; gap: 12px;
+    padding: 2.5px 0; font-variant-numeric: tabular-nums; }
+  .ficha-kv b { color: #333; font-weight: 600; text-align: right; max-width: 60%; }
+  .ficha-ctx { font-size: 11px; color: #666; margin: -2px 0 1px; line-height: 1.35; }
+  .ficha-fonte { font-size: 10.5px; color: #9a9a9a; margin: -2px 0 4px; line-height: 1.35; }
+  .ficha-cab { font-size: 11px; font-weight: 600; color: #777; margin: 10px 0 2px; }
+  .ficha-rodape { margin-top: 8px; border-top: 1px solid #ececec; padding-top: 6px; }
   .card-kv { display: flex; justify-content: space-between; gap: 12px;
              font-size: 12px; color: #555; padding: 2.5px 0;
              font-variant-numeric: tabular-nums; }
@@ -324,6 +343,7 @@ addEventListener('DOMContentLoaded', function () {
 <div class="ov-cred glass">
   <span class="fonte-l">Por <b>Daniel Mariani</b></span>
   <button id="btn-met">Metodologia</button>
+  <a href="municipios">Tabela por município</a>
   <a href="https://mapa-eleicoes.danielmariani.com.br" target="_blank"
      rel="noopener">Mapa da eleição ↗</a>
 </div>
@@ -404,6 +424,18 @@ addEventListener('DOMContentLoaded', function () {
     O ranking é pelo volume absoluto de votos. Estados e municípios sem
     nenhuma região são avisados como tal: o modelo não encontrou
     subdesempenho concentrado neles.</p>
+    <h3>O que mais aparece na ficha de cada município e distrito</h3>
+    <p>Ao abrir um município ou um distrito, a ficha traz, além do voto, os
+    dados oficiais mais recentes do lugar: quem recebe programas federais
+    (Bolsa Família, CadÚnico, BPC, Auxílio-Gás, Gás do Povo, Farmácia Popular,
+    Pé-de-Meia, Minha Casa Minha Vida, Luz para Todos, Mais Médicos, Pronampe,
+    Plano Safra e outros, do painel ComunicaBR da Presidência e do MDS),
+    emprego formal (saldo do Novo CAGED desde 2023), empresas e MEI, PIB,
+    IDEB 2025, saneamento (Censo 2022 e SINISA) e moradia (Censo 2022).
+    Cada número traz a fonte e a data de referência; os programas federais são
+    contados por município (não há recorte por distrito ou setor); o Censo
+    chega ao distrito e ao setor. Esses dados descrevem o lugar e não explicam,
+    por si, o voto.</p>
     <h3>Fontes e limites</h3>
     <p>TSE (votação por seção de 2018, 2022 e 2026, cadastro de locais
     de votação); IBGE (malha e agregados do Censo 2022, áreas de
@@ -411,7 +443,12 @@ addEventListener('DOMContentLoaded', function () {
     de cada local entre os setores vizinhos por proximidade e população,
     cada eleitor contado uma única vez (metodologia do
     <a href="https://mapa-eleicoes.danielmariani.com.br" target="_blank"
-    rel="noopener">mapa da eleição</a>). O déficit é uma medida
+    rel="noopener">mapa da eleição</a>). A estimativa de um setor
+    isolado carrega o erro dessa repartição; por isso o mapa pinta os
+    setores só para mostrar onde o sinal está, e todos os números do
+    site (regiões, distritos, municípios, ranking, votos a recuperar)
+    são somas de muitos setores, em que os erros de setores vizinhos se
+    compensam. Nenhum número aqui se refere a um setor isolado. O déficit é uma medida
     agregada de território, não uma contagem de pessoas; parte dele se
     recupera por mobilização (abstenção), parte por convencimento.
     Dados abertos em
@@ -1131,6 +1168,145 @@ function secao(titulo) {
   h.className = "card-sec"; h.textContent = titulo;
   return h;
 }
+const FICHA_BASE = "dados/";
+// ---------- ficha extra: dados oficiais por município / distrito / setor ----------
+// Arquivos dados/mun/{cd_mun}.json (municipio_pacote_107.py): seções do
+// município já formatadas (ComunicaBR, MDS, IBGE, INEP, SINISA, CAGED),
+// Censo 2022 dos distritos e setores em arrays (ordem CAMPOS_CENSO).
+const FICHA_CACHE = {};
+function fichaCarrega(url) {
+  if (!FICHA_CACHE[url])
+    FICHA_CACHE[url] = fetch(url).then(r => r.ok ? r.json() : null)
+                                 .catch(() => null);
+  return FICHA_CACHE[url];
+}
+// rótulo, posição no array, formato (% | n | x)
+const FICHA_CENSO = [
+  ["Água da rede geral", 0, "%"], ["Água encanada dentro de casa", 1, "%"],
+  ["Esgoto na rede geral", 2, "%"], ["Fossa séptica", 3, "%"],
+  ["Esgoto precário (fossa rudimentar, vala, rio ou sem banheiro)", 4, "%"],
+  ["Lixo coletado", 5, "%"], ["Sem banheiro de uso exclusivo", 6, "%"],
+  ["Moram em apartamento", 7, "%"], ["Cortiços ou moradias degradadas", 8, "%"],
+  ["Domicílios chefiados por mulheres", 9, "%"],
+  ["Responsáveis com 60 anos ou mais", 10, "%"],
+  ["Moradores por domicílio", 11, "x"], ["Domicílios ocupados", 12, "n"]];
+function fichaFmt(v, t) {
+  if (v == null) return null;
+  if (t === "%") return v.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+  if (t === "n") return v.toLocaleString("pt-BR");
+  return v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+}
+function fichaLinha(rot, val, fonte, serie, ctx) {
+  const frag = document.createDocumentFragment();
+  const d = document.createElement("div");
+  d.className = "ficha-kv";
+  const a = document.createElement("span"); a.textContent = rot;
+  const b = document.createElement("b"); b.textContent = val;
+  d.append(a, b); frag.append(d);
+  if (ctx) {   // medida por habitante + posição entre os municípios do país
+    const c = document.createElement("div");
+    c.className = "ficha-ctx";
+    c.textContent = ctx;
+    frag.append(c);
+  }
+  if (fonte || serie) {
+    const f = document.createElement("div");
+    f.className = "ficha-fonte";
+    f.textContent = [serie, fonte].filter(Boolean).join(" · ");
+    frag.append(f);
+  }
+  return frag;
+}
+function fichaSecao(titulo, n, aberta) {
+  const det = document.createElement("details");
+  det.className = "ficha-sec";
+  if (aberta) det.open = true;
+  const s = document.createElement("summary");
+  const t = document.createElement("span"); t.textContent = titulo;
+  const k = document.createElement("span"); k.className = "n";
+  k.textContent = n != null ? n : "";
+  s.append(t, k); det.append(s);
+  return det;
+}
+// percentis nacionais (percentis_109.py): posição do distrito/setor entre
+// os distritos/setores do país ("mais que X% dos setores")
+let FICHA_PCT = null;
+function fichaRank(nivel, campo, v) {
+  if (!FICHA_PCT || v == null) return null;
+  const cuts = (FICHA_PCT[nivel] || {})[campo];
+  if (!cuts) return null;
+  let p = 0;
+  while (p < cuts.length && cuts[p] < v) p++;
+  const un = nivel === "dist" ? "distritos" : nivel === "setor" ? "setores" : "municípios";
+  if (p >= 99) return `entre o 1% dos ${un} com mais`;
+  if (p === 0) return `no mínimo entre os ${un}`;
+  return `mais que ${p}% dos ${un} do país`;
+}
+// el: onde desenhar; nivel: "mun" | "dist" | "setor"; cd: código do nível
+async function fichaExtra(el, nivel, cd) {
+  cd = String(cd);
+  const box = document.createElement("div");
+  box.className = "ficha-extra";
+  box.textContent = "carregando dados oficiais…";
+  el.append(box);
+  const [d, pc] = await Promise.all([
+    fichaCarrega(FICHA_BASE + "mun/" + cd.slice(0, 7) + ".json"),
+    FICHA_PCT ? Promise.resolve(FICHA_PCT) : fichaCarrega(FICHA_BASE + "percentis.json")]);
+  if (pc) FICHA_PCT = pc;
+  box.replaceChildren();
+  if (!d) { box.textContent = "sem dados oficiais para esta área"; return; }
+  const nomeMun = `${d.nm} (${d.uf})`;
+  if (nivel !== "mun") {
+    let arr = null;
+    if (nivel === "dist") arr = d.dist[cd];
+    else if (d.set) arr = d.set[cd];
+    else {   // município grande: setores em um arquivo por distrito
+      const s = await fichaCarrega(FICHA_BASE + "set/" + cd.slice(0, 9) + ".json");
+      arr = s ? s[cd] : null;
+    }
+    const sec = fichaSecao(nivel === "dist" ? "Moradia e saneamento no distrito (Censo 2022)"
+                                            : "Moradia e saneamento no setor (Censo 2022)", null, true);
+    if (!arr) {
+      const p = document.createElement("div"); p.className = "ficha-fonte";
+      p.textContent = "sem dados do Censo para esta área (poucos domicílios: o IBGE omite)";
+      sec.append(p);
+    } else {
+      let n = 0;
+      for (const [rot, i, t] of FICHA_CENSO) {
+        const v = fichaFmt(arr[i], t);
+        if (v == null) continue;
+        n++;
+        const m = d.mcenso ? fichaFmt(d.mcenso[i], t) : null;
+        const campo = (d.campos || [])[i];
+        sec.append(fichaLinha(rot, v, m != null ? `município: ${m}` : null, null,
+                              fichaRank(nivel, campo, arr[i])));
+      }
+      if (!n) sec.append(Object.assign(document.createElement("div"),
+        { className: "ficha-fonte", textContent: "dados omitidos pelo IBGE (área pequena)" }));
+    }
+    box.append(sec);
+    const cab = document.createElement("div");
+    cab.className = "ficha-cab";
+    cab.textContent = `Dados do município de ${nomeMun}`;
+    box.append(cab);
+  }
+  for (const s of d.sec || []) {
+    const sec = fichaSecao(s.t, s.l.length, false);
+    for (const [rot, val, fonte, serie, ctx] of s.l) sec.append(fichaLinha(rot, val, fonte, serie, ctx));
+    box.append(sec);
+  }
+  const nota = document.createElement("div");
+  nota.className = "ficha-fonte ficha-rodape";
+  nota.textContent = "Programas federais: ComunicaBR (Secom/PR), com a data de referência " +
+    "de cada número; Bolsa Família, CadÚnico e BPC: MDS; emprego formal: Novo CAGED; " +
+    "empresas: Mapa de Empresas; IDEB: INEP; saneamento: Censo 2022 e SINISA. " +
+    "Os programas são contados por município; o Censo chega ao distrito e ao setor. " +
+    "A posição ('mais que X% dos municípios') compara a medida por habitante, por " +
+    "domicílio ou o percentual com todos os municípios do país; nas seções de programas " +
+    "as linhas vêm ordenadas por essa posição.";
+  box.append(nota);
+}
+
 function cardRegiao(r) {
   $r.replaceChildren();
   const x = document.createElement("button");
@@ -1213,6 +1389,8 @@ function cardRegiao(r) {
       `${fmt(pf.ap_pct_sem_religiao)}% sem rel.`));
   if (pf.pct_urbano != null)
     corpo.append(kv("População urbana", fmt(pf.pct_urbano) + "%"));
+  if (unidade !== "regiao")
+    fichaExtra(corpo, unidade === "mun" ? "mun" : "dist", r.cd);
   if (unidade === "regiao") {
     corpo.append(secao(visao === "swing" ? "Municípios, por votos perdidos"
                                           : "Municípios, por déficit"));
