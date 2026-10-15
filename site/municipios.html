@@ -56,6 +56,17 @@
     font-size: 10px; color: #a0a0a0; font-weight: 400; }
   tbody td.ord .rk { color: var(--acento); }
   td.nulo { color: #bbb; }
+  tbody td.f3 { background: rgba(39,86,139,0.09); }
+  tbody td.f2 { background: rgba(39,86,139,0.20); }
+  tbody td.f1 { background: rgba(39,86,139,0.34); color: #0d2a4a; font-weight: 600; }
+  tbody td.f1 .rk { color: #35557a; }
+  tbody tr:hover td.f3 { background: rgba(39,86,139,0.14); }
+  tbody tr:hover td.f2 { background: rgba(39,86,139,0.25); }
+  tbody tr:hover td.f1 { background: rgba(39,86,139,0.40); }
+  .leg { display: inline-flex; gap: 10px; align-items: center; font-size: 11.5px; color: var(--sub);
+    margin-left: 8px; flex-wrap: wrap; }
+  .leg i { display: inline-block; width: 14px; height: 11px; border-radius: 2px; vertical-align: -1px;
+    margin-right: 3px; border: 1px solid rgba(0,0,0,.06); }
   th.fx, td.fx { position: sticky; left: 0; z-index: 2; background: #fff; }
   thead th.fx { z-index: 4; }
   th.fx2, td.fx2 { left: 38px; min-width: 150px; max-width: 220px; overflow: hidden;
@@ -88,7 +99,7 @@
   perfil fizeram nesta eleição) e contra o <b>1º turno de 2022</b>. E <b>quanta abstenção houve a mais</b>, também
   de dois jeitos: contra a <b>esperada</b> pelo modelo irmão e contra o <b>2º turno de 2022</b> (quem votou
   naquele dia e faltou agora). Ao lado, a cobertura dos <b>programas federais em % da população</b>.
-  Depois de cada número, em cinza, a <b>posição do município no país</b> naquela coluna (1º = maior valor entre os 5.570), para saber se é muito ou pouco. Clique no cabeçalho para ordenar.</p>
+  Depois de cada número, em cinza, a <b>posição do município no país</b> naquela coluna (1º = maior valor entre os 5.570), para saber se é muito ou pouco. Nos programas, a cor da célula marca os municípios entre os 10%, 25% e 50% com maior cobertura do país. Clique no cabeçalho para ordenar.</p>
   <div class="ctr">
     <input id="q" type="search" placeholder="Buscar município…" aria-label="Buscar município">
     <select id="uf" aria-label="Estado"><option value="">Todos os estados</option></select>
@@ -108,7 +119,10 @@
     <a class="btn" href="dados/ranking_municipios.csv" download>Baixar CSV</a>
     <a class="btn" href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
-  <p class="resumo" id="resumo">Carregando…</p>
+  <p class="resumo"><span id="resumo">Carregando…</span>
+    <span class="leg">Programas: <span><i style="background:rgba(39,86,139,0.34)"></i>10% mais altos do país</span>
+    <span><i style="background:rgba(39,86,139,0.20)"></i>25% mais altos</span>
+    <span><i style="background:rgba(39,86,139,0.09)"></i>metade de cima</span></span></p>
   <div class="tw"><table id="t"><thead></thead><tbody></tbody></table></div>
   <button class="mais" id="mais" style="display:none">Mostrar mais</button>
 
@@ -255,7 +269,12 @@
     if (v == null) return `<td class="nulo${base}">–</td>`;
     const s = c.tipo === "int" ? fmtInt.format(v) : c.tipo === "pp" ? (v > 0 ? "+" : "") + fmt1.format(v) : fmt2.format(v);
     const rk = RK[c.k] ? RK[c.k].get(r.cd_mun) : null;
-    return `<td class="${v < 0 ? "neg" : ""}${base}">${s}${rk ? `<span class="rk" title="${rk}º entre ${fmtInt.format(RK[c.k].size)} municípios">${fmtInt.format(rk)}º</span>` : ""}</td>`;
+    let faixa = "";
+    if (rk && c.g.startsWith("Programas")) {
+      const q = rk / RK[c.k].size;
+      faixa = q <= 0.10 ? " f1" : q <= 0.25 ? " f2" : q <= 0.50 ? " f3" : "";
+    }
+    return `<td class="${v < 0 ? "neg" : ""}${base}${faixa}">${s}${rk ? `<span class="rk" title="${rk}º entre ${fmtInt.format(RK[c.k].size)} municípios">${fmtInt.format(rk)}º</span>` : ""}</td>`;
   }
   function render() {
     cabecalho();
