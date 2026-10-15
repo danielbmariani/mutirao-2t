@@ -122,6 +122,84 @@ for c in ["pop_censo_2022", "pct_lula_2026t1", "pct_lula_2022t1", "esperado_pct"
           "pe_de_meia_pct_pop", "mei_pct_pop", "emprego_formal_pct_pop", "mcmv_por_100hab"]:
     t["rk_" + c] = rk(c)
 
+# ---- textos "mastigados" (pedido 15/10: lugar, por quê, o que fazer, o que o
+# governo faz ali). Mesmas regras no CSV e na página (a página só exibe).
+QUEDA_BR = 3.28  # queda nacional da fatia de Lula, 1T 2022 -> 1T 2026
+N = len(t)
+from decimal import Decimal, ROUND_HALF_UP
+# arredondamento "meio para cima" sobre a representação decimal curta, como o
+# Intl.NumberFormat do navegador (2,15 -> 2,2; Python daria 2,1): CSV = página
+def _r(v, casas): return Decimal(repr(float(v))).quantize(Decimal(1).scaleb(-casas), rounding=ROUND_HALF_UP)
+def f1(v): return f"{_r(v, 1):,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+def fi(v): return f"{_r(v, 0):,.0f}".replace(",", ".")
+def mil(v):
+    v = abs(v)
+    if v >= 1e6: return f1(v / 1e6) + " mi"
+    if v >= 1e4: return fi(v / 1e3) + " mil"
+    if v >= 1e3: return f1(v / 1e3) + " mil"
+    return fi(v)
+def porque(r):
+    s = []
+    pp, pl = r.def_modelo_pp, r.pct_lula_2026t1
+    if pd.isna(pp): s.append(f"Lula teve {f1(pl)}%.")
+    elif pp >= 1: s.append(f"Lula teve {f1(pl)}%, {f1(pp)} pontos abaixo do esperado para o perfil da cidade ({mil(r.def_modelo_votos)} votos, {fi(r.rk_def_modelo_votos)}º do país).")
+    elif pp > -1: s.append(f"Lula teve {f1(pl)}%, dentro do esperado para o perfil da cidade.")
+    else: s.append(f"Lula teve {f1(pl)}%, {f1(-pp)} pontos acima do esperado para o perfil da cidade.")
+    qd = r.def_2022_pp
+    if qd >= 1:
+        raz = qd / QUEDA_BR
+        comp = ("mais que o dobro da queda nacional" if raz >= 2 else "acima da queda nacional de 3,3" if raz >= 1.3
+                else "parecido com a queda nacional de 3,3" if raz >= 0.7 else "menos que a queda nacional de 3,3")
+        s.append(f"Caiu {f1(qd)} pontos desde o 1º turno de 2022, {comp} ({mil(r.def_2022_votos)} votos).")
+    elif qd > -1: s.append("Fatia igual à do 1º turno de 2022.")
+    else: s.append(f"Subiu {f1(-qd)} pontos desde o 1º turno de 2022.")
+    ex, ab, lid = r.abst_modelo_pp, r.abst_2026_pct, bool(r.lula_lidera)
+    if pd.isna(ex): s.append(f"Abstenção de {f1(ab)}%.")
+    elif ex >= 1 and lid: s.append(f"Abstenção de {f1(ab)}%, {f1(ex)} pontos acima da esperada, e Lula lidera ({f1(pl)} a {f1(r.pct_flavio_2026t1)}): {mil(r.abst_modelo_votos_lula)} votos dele ficaram em casa.")
+    elif ex >= 1: s.append(f"Abstenção de {f1(ab)}%, {f1(ex)} pontos acima da esperada, mas Flávio lidera: levar todo mundo à urna devolve mais voto a ele.")
+    elif ex > -1: s.append(f"Abstenção de {f1(ab)}%, dentro do esperado.")
+    else: s.append(f"Abstenção de {f1(ab)}%, {f1(-ex)} pontos abaixo da esperada.")
+    d = r.abst_2022_pp
+    if d >= 0.5: s.append(f"{mil(r.abst_2022_eleitores)} eleitores a mais em casa que no 2º turno de 2022.")
+    elif d > -0.5: s.append("Abstenção igual à do 2º turno de 2022.")
+    else: s.append(f"Menos abstenção que no 2º turno de 2022 ({f1(-d)} pontos).")
+    return " ".join(s)
+def acao(r):
+    C = (not pd.isna(r.def_modelo_pp)) and r.def_modelo_pp >= 1
+    A = (not pd.isna(r.abst_modelo_pp)) and r.abst_modelo_pp >= 1
+    lid = bool(r.lula_lidera)
+    if C and A and lid: return ("Convencer e levar à urna", "faltou voto e faltou gente: as duas frentes rendem aqui.")
+    if C and A: return ("Convencer quem saiu", "o voto é que faltou. A abstenção também está alta, mas Flávio lidera: mobilização só com conhecidos.")
+    if C: return ("Convencer quem saiu", "o voto é que faltou; a abstenção está no padrão.")
+    if A and lid: return ("Levar à urna", "Lula lidera e a abstenção ficou acima do esperado; o voto está no padrão.")
+    if A: return ("Só com conhecidos", "abstenção acima do esperado, mas Flávio lidera: mobilização geral devolve mais voto a ele.")
+    if r.def_2022_pp >= 1.3 * QUEDA_BR: return ("Maré nacional, não local", "caiu mais que o país desde 2022, mas o resultado é o esperado para lugares com esse perfil: resolve-se com mensagem geral, não com mutirão.")
+    return ("Manter", "Lula dentro ou acima do esperado e abstenção no padrão.")
+PROGS = [("bolsa_familia_pct_pop", "Bolsa Família", "% da pop."), ("cadunico_pct_pop", "CadÚnico", "% da pop."),
+         ("bpc_pct_pop", "BPC", "% da pop."), ("farmacia_popular_pct_pop", "Farmácia Popular", "% atendidos no ano"),
+         ("pe_de_meia_pct_pop", "Pé-de-Meia", "% da pop."), ("mei_pct_pop", "MEI", "% da pop."),
+         ("emprego_formal_pct_pop", "Emprego formal", "% da pop."), ("mcmv_por_100hab", "Minha Casa Minha Vida", " moradias por 100 hab.")]
+def faixa(q): return "10% mais altos do país" if q <= .10 else "25% mais altos" if q <= .25 else "metade de cima" if q <= .5 else None
+def governo(r):
+    itens = []
+    for k, nome, un in PROGS:
+        v, rk = r[k], r["rk_" + k]
+        if pd.isna(v) or pd.isna(rk): continue
+        q = rk / N
+        itens.append((q, nome, v, un))
+    itens.sort(key=lambda x: x[0])  # estável: empates mantêm a ordem de PROGS, como no front
+    top = [x for x in itens if x[0] <= .25][:3] or [x for x in itens if x[0] <= .5][:2]
+    if not top:
+        if not itens: return "Sem dados de programas."
+        q, nome, v, un = itens[0]
+        return f"Cobertura abaixo da mediana nacional em todos os programas; o mais alto é {nome}, {f1(v)}{un} ({fi(round(100*q))}º percentil)."
+    return "; ".join(f"{nome} {f1(v)}{un} ({faixa(q)})" for q, nome, v, un in top) + "."
+t["porque"] = t.apply(porque, axis=1)
+ac = t.apply(acao, axis=1)
+t["acao"] = [a for a, _ in ac]; t["acao_motivo"] = [m for _, m in ac]
+t["governo"] = t.apply(governo, axis=1)
+print(t.acao.value_counts().to_string())
+
 COLS = ["cd_mun", "nm_mun", "uf", "pop_censo_2022", "rk_pop_censo_2022", "aptos_2026", "votos_validos_2026t1",
         "pct_lula_2026t1", "rk_pct_lula_2026t1", "pct_flavio_2026t1", "lula_lidera", "pct_lula_2022t1", "rk_pct_lula_2022t1", "pct_lula_2022t2",
         "esperado_pct", "rk_esperado_pct", "def_modelo_pp", "def_modelo_votos", "rk_def_modelo_votos", "rk_def_modelo_pp",
@@ -133,7 +211,8 @@ COLS = ["cd_mun", "nm_mun", "uf", "pop_censo_2022", "rk_pop_censo_2022", "aptos_
         "bolsa_familia_pct_pop", "rk_bolsa_familia_pct_pop", "cadunico_pct_pop", "rk_cadunico_pct_pop",
         "bpc_pct_pop", "rk_bpc_pct_pop", "farmacia_popular_pct_pop", "rk_farmacia_popular_pct_pop",
         "pe_de_meia_pct_pop", "rk_pe_de_meia_pct_pop", "mei_pct_pop", "rk_mei_pct_pop",
-        "emprego_formal_pct_pop", "rk_emprego_formal_pct_pop", "mcmv_por_100hab", "rk_mcmv_por_100hab"]
+        "emprego_formal_pct_pop", "rk_emprego_formal_pct_pop", "mcmv_por_100hab", "rk_mcmv_por_100hab",
+        "acao", "acao_motivo", "porque", "governo"]
 t = t[COLS].rename(columns={"nm_mun": "municipio", "pop_censo_2022": "pop_2022",
                             "votos_validos_2026t1": "validos_2026", "pct_lula_2026t1": "lula_2026_pct",
                             "pct_flavio_2026t1": "flavio_2026_pct", "pct_lula_2022t1": "lula_2022t1_pct",
@@ -155,7 +234,7 @@ def cell(v):
     if isinstance(v, (np.floating, float)): return float(v)
     if isinstance(v, (np.bool_, bool)): return bool(v)
     return v
-tj = t[[c for c in t.columns if not c.startswith("rk_")]]
+tj = t[[c for c in t.columns if not c.startswith("rk_") and c not in ("porque", "acao_motivo", "governo")]]  # textos: a página gera com as mesmas regras
 rows = [[cell(v) for v in r] for r in tj.itertuples(index=False)]
 tot = {"def_modelo_votos": float(t.def_modelo_votos.clip(lower=0).sum()),
        "def_2022_votos": float(t.def_2022_votos.clip(lower=0).sum()),

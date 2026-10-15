@@ -75,7 +75,12 @@ Mais a fatia de Lula (2022 T1/T2, 2026, esperada), abstenção oficial
 Popular, Pé-de-Meia, MEI, emprego formal, Minha Casa Minha Vida por 100
 hab.; MDS ago/2026 e ComunicaBR, meses de referência no cabeçalho da
 página). `rk_*` = posição nacional (1 = mais votos a recuperar / maior
-cobertura; negativos no fim). Script: `regioes/ranking_municipios_110.py`.
+cobertura; negativos no fim). Quatro colunas de texto, em linguagem
+direta e com as mesmas regras da página: `acao` (Convencer quem saiu /
+Levar à urna / Convencer e levar à urna / Só com conhecidos / Maré
+nacional, não local / Manter), `acao_motivo`, `porque` (as quatro réguas
+em frases) e `governo` (os programas em que o município está mais alto no
+país). Script: `regioes/ranking_municipios_110.py`.
 As réguas de 2022 somam muito mais votos (4,2 mi na queda, 0,9 mi na
 abstenção) que as do modelo (0,65 mi e 0,44 mi) porque incluem a maré
 nacional; a correlação de postos entre as duas réguas de déficit é 0,33
