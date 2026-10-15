@@ -34,14 +34,16 @@ con.sql("SET threads TO 8")
 
 # ---- oficial TSE: fatias de Lula (município) e abstenção por turno
 mun = pd.read_csv(DIR_PROC / "dashboard/municipios_eleicao.csv", dtype={"cd_mun": int})
-mun = mun[["cd_mun", "nm_mun", "uf", "votos_validos_2022t1", "pct_lula_2022t1", "pct_lula_2022t2",
-           "votos_validos_2026t1", "pct_lula_2026t1", "pct_flavio_2026t1"]]
+mun = mun[["cd_mun", "nm_mun", "uf", "votos_validos_2022t1", "pct_lula_2022t1", "pct_bolsonaro_2022t1",
+           "votos_validos_2022t2", "pct_lula_2022t2", "pct_bolsonaro_2022t2",
+           "votos_validos_2026t1", "pct_lula_2026t1", "pct_flavio_2026t1", "pct_outros_2026t1"]]
 depara = pd.read_csv(DADOS / "brutos/tse_ibge.csv")[["codigo_tse", "codigo_ibge"]]
 
 def abst(arq):
     return con.sql(f"""
       SELECT NR_TURNO AS turno, CD_MUNICIPIO AS codigo_tse,
-             sum(QT_APTOS) AS aptos, sum(QT_ABSTENCOES) AS abst
+             sum(QT_APTOS) AS aptos, sum(QT_ABSTENCOES) AS abst, sum(QT_COMPARECIMENTO) AS comp,
+             sum(QT_VOTOS_NOMINAIS) AS nominais, sum(QT_VOTOS_BRANCOS) AS brancos, sum(QT_VOTOS_NULOS) AS nulos
       FROM read_csv('{arq}', delim=';', header=true, encoding='latin-1', ignore_errors=true)
       WHERE CD_CARGO = 1 AND SG_UF <> 'ZZ' GROUP BY 1, 2""").df()
 
@@ -49,8 +51,9 @@ a26 = abst(TSE / "detalhe_votacao_secao_2026_BR.csv")
 a22 = abst(TSE / "detalhe_votacao_secao_2022_BR.csv")
 def por_mun(d, turno, suf):
     d = d[d.turno == turno].merge(depara, on="codigo_tse", how="inner")
-    g = d.groupby("codigo_ibge")[["aptos", "abst"]].sum()
-    return pd.DataFrame({f"aptos_{suf}": g.aptos, f"abst_{suf}_pct": (100 * g.abst / g.aptos).round(2)})
+    g = d.groupby("codigo_ibge")[["aptos", "abst", "comp", "nominais", "brancos", "nulos"]].sum()
+    return pd.DataFrame({f"aptos_{suf}": g.aptos, f"abst_{suf}_pct": (100 * g.abst / g.aptos).round(2),
+                         f"comp_{suf}": g.comp, f"nominais_{suf}": g.nominais, f"bn_{suf}": g.brancos + g.nulos})
 ab = por_mun(a26, 1, "2026").join(por_mun(a22, 2, "2022t2")).join(por_mun(a22, 1, "2022t1"))
 ab.index.name = "cd_mun"
 mun = mun.merge(ab.reset_index(), on="cd_mun", how="left")
@@ -112,6 +115,115 @@ prog = pd.DataFrame({
 })
 t = t.merge(b, on="cd_mun", how="left").merge(prog, on="cd_mun", how="left")
 
+# ==== OUTROS MODELOS DO GRUPO (pedido 15/10: "todos os indicadores de todos os modelos")
+# (a) Colmeia, indicadores atuais por LOCAL de votação, agregados por cidade no
+#     índice dados/prioritarios/<UF>.json e em dados/municipios/<UF>/<cd>.json
+#     (commit de 12/10/2026; consolidado em dados/brutos/colmeia/)
+col = pd.read_parquet(DADOS / "brutos/colmeia/colmeia_municipios_2026-10-12.parquet")
+col = pd.DataFrame({"cd_mun": col.cd_mun,
+    "colmeia_ativar_locais": col.ativar_locais, "colmeia_ativar_votos": col.ativar_votos,
+    "colmeia_ativar_eleitorado_pct": col["at"],
+    "colmeia_reconquistar_locais": col.reconquistar_locais,
+    "colmeia_reconquistar_perda_por100": col.reconquistar_perda_por100,
+    "colmeia_reconquistar_votos": col.reconquistar_votos,
+    "colmeia_votos_para_vencer": col.vm, "colmeia_mob_pp": col.mob})
+t = t.merge(col, on="cd_mun", how="left")
+
+# (b) Painel da campanha ("metodologia da Amanda", 12/10): território prioritário
+#     por microrregião, a partir da planilha de locais compartilhada no grupo
+#     (3.236 municípios em 20 UFs), e as réguas do painel recalculadas do TSE
+GI = DADOS / "brutos/grupo_indicadores"
+L = pd.read_excel(GI / "impulsionamento_locais_prioritarios.xlsx", sheet_name="Locais",
+                  usecols=["Estado", "Microrregião", "Município", "Código do local",
+                           "Prioridade (metodologia da Amanda, 12/10)", "Lado", "Onde começar? (etiqueta de 09/10)"])
+L["codigo_tse"] = L["Código do local"].str.split("-").str[1].astype(int)
+L = L.merge(depara, on="codigo_tse", how="left")
+print("locais da campanha sem de-para:", int(L.codigo_ibge.isna().sum()))
+gl = L.groupby("codigo_ibge")
+camp = pd.DataFrame({
+    "camp_microrregiao": gl["Microrregião"].first(),
+    "camp_prioridade": gl["Prioridade (metodologia da Amanda, 12/10)"].first(),
+    "camp_locais": gl.size(),
+    "camp_locais_prioridade1": gl["Onde começar? (etiqueta de 09/10)"].apply(lambda s: int((s == "Prioridade 1").sum())),
+    "camp_locais_ativar": gl["Lado"].apply(lambda s: int((s == "ativar").sum())),
+    "camp_locais_conter": gl["Lado"].apply(lambda s: int((s == "conter").sum())),
+    "_uf": gl["Estado"].first()}).reset_index().rename(columns={"codigo_ibge": "cd_mun"})
+camp["cd_mun"] = camp.cd_mun.astype(int)
+Mi = pd.read_excel(GI / "impulsionamento_locais_prioritarios.xlsx", sheet_name="Microrregiões", header=3)
+Mi = Mi.rename(columns={"Estado": "_uf", "Microrregião": "camp_microrregiao",
+    "Metodologia da Amanda: ação principal": "camp_acao_microrregiao",
+    "Metodologia da Amanda: votos a buscar": "camp_votos_a_buscar_microrregiao",
+    "Metodologia da Amanda: quanto rende (votos)": "camp_quanto_rende_microrregiao"})
+Mi = Mi[["_uf", "camp_microrregiao", "camp_acao_microrregiao", "camp_votos_a_buscar_microrregiao", "camp_quanto_rende_microrregiao"]].dropna(subset=["camp_microrregiao"])
+camp = camp.merge(Mi, on=["_uf", "camp_microrregiao"], how="left").drop(columns="_uf")
+for c in ("camp_votos_a_buscar_microrregiao", "camp_quanto_rende_microrregiao"):
+    camp[c] = pd.to_numeric(camp[c], errors="coerce").round(0)
+for c in ("camp_microrregiao", "camp_prioridade", "camp_acao_microrregiao"):
+    camp[c] = camp[c].astype("string")
+t = t.merge(camp, on="cd_mun", how="left")
+# réguas do painel, do resultado oficial (TSE)
+lula22t2 = t.pct_lula_2022t2 / 100 * t.votos_validos_2022t2
+lula26 = t.pct_lula_2026t1 / 100 * t.votos_validos_2026t1
+t["camp_votos_lula_perdidos_2022t2"] = (lula22t2 - lula26).round(0)
+t["camp_outros_candidatos_votos"] = (t.pct_outros_2026t1 / 100 * t.votos_validos_2026t1).round(0)
+t["camp_variacao_diferenca_pp"] = ((t.pct_lula_2026t1 - t.pct_flavio_2026t1) - (t.pct_lula_2022t2 - t.pct_bolsonaro_2022t2)).round(2)
+t["camp_desempenho_2022t2_pct"] = (100 * t.pct_lula_2022t2 / (t.pct_lula_2022t2 + t.pct_bolsonaro_2022t2)).round(2)
+t["camp_desempenho_2026_pct"] = (100 * t.pct_lula_2026t1 / (t.pct_lula_2026t1 + t.pct_flavio_2026t1)).round(2)
+t["camp_variacao_desempenho_pp"] = (t.camp_desempenho_2026_pct - t.camp_desempenho_2022t2_pct).round(2)
+
+# (c) NIELE (Rodrigo Mahlmeister), "Onde Lula perdeu voto": decomposição LMDI de
+#     L = c·v·r·q (votos de Lula por eleitor) entre comparecimento, brancos/nulos,
+#     terceira via e reconversão, contra o 1T e o 2T de 2022. Versão MUNICIPAL
+#     com o resultado oficial, sem o ajuste de ruído nem o pareamento de locais
+#     do original (branch niele/onde-lula-perdeu do repositório indicadores).
+def lmdi(base):
+    ap, co, va = t[f"aptos_{base}"], t[f"comp_{base}"], t[f"votos_validos_{base}"]
+    pl = t[f"pct_lula_{base}"] / 100
+    pa = (t["pct_bolsonaro_2022t1"] if base == "2022t1" else t["pct_bolsonaro_2022t2"]) / 100
+    Lb, Ab = pl * va, pa * va
+    cb, vb, rb, qb = co / ap, va / co, (Lb + Ab) / va, Lb / (Lb + Ab)
+    ap6, co6, va6 = t.aptos_2026, t.comp_2026, t.votos_validos_2026t1
+    L6, A6 = t.pct_lula_2026t1 / 100 * va6, t.pct_flavio_2026t1 / 100 * va6
+    c6, v6, r6, q6 = co6 / ap6, va6 / co6, (L6 + A6) / va6, L6 / (L6 + A6)
+    Yb, Y6 = cb * vb * rb * qb, c6 * v6 * r6 * q6          # votos de Lula por eleitor
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lm = np.where(np.isclose(Y6, Yb), Y6, (Y6 - Yb) / (np.log(Y6) - np.log(Yb)))
+        parc = {k: -lm * np.log(x6 / xb) * ap6 for k, x6, xb in
+                [("comparecimento", c6, cb), ("brancos_nulos", v6, vb), ("terceira_via", r6, rb), ("reconversao", q6, qb)]}
+    out = pd.DataFrame(parc).round(0)
+    out["total"] = ((Yb - Y6) * ap6).round(0)        # = soma das parcelas (perda positiva)
+    return out
+for base, suf in (("2022t1", "1t"), ("2022t2", "2t")):
+    d = lmdi(base)
+    for c in d.columns: t[f"niele_{suf}_{c}"] = d[c]
+t["niele_persuasao_votos"] = (t.niele_1t_reconversao + t.niele_1t_terceira_via + t.niele_1t_brancos_nulos).round(0)
+t["niele_mobilizacao_votos"] = t.niele_2t_comparecimento.clip(lower=0).round(0)
+t["niele_total_votos"] = (t.niele_persuasao_votos.clip(lower=0) + t.niele_mobilizacao_votos).round(0)
+t["niele_votos_por_mil"] = (1000 * t.niele_total_votos / t.aptos_2026).round(1)
+t["niele_estrategia"] = np.where(t.niele_mobilizacao_votos > t.niele_persuasao_votos, "Mobilização",
+                        np.where(t.niele_2t_terceira_via > t.niele_2t_reconversao, "Terceira via", "Reconversão"))
+chk = (t.niele_1t_total - (t.niele_1t_comparecimento + t.niele_1t_brancos_nulos + t.niele_1t_terceira_via + t.niele_1t_reconversao)).abs().max()
+print(f"LMDI fecha? máx |total − soma| = {chk:.1f} voto(s); Brasil 1T (mil): total {t.niele_1t_total.sum()/1e3:.0f}, "
+      f"comp {t.niele_1t_comparecimento.sum()/1e3:.0f}, bn {t.niele_1t_brancos_nulos.sum()/1e3:.0f}, "
+      f"3ª via {t.niele_1t_terceira_via.sum()/1e3:.0f}, reconv {t.niele_1t_reconversao.sum()/1e3:.0f} | "
+      f"2T: total {t.niele_2t_total.sum()/1e3:.0f}, comp {t.niele_2t_comparecimento.sum()/1e3:.0f}, 3ª via {t.niele_2t_terceira_via.sum()/1e3:.0f}, reconv {t.niele_2t_reconversao.sum()/1e3:.0f}")
+
+# (d) Fernando Barbalho, classificação G4 (711 municípios em que Lula liderou no
+#     1T de 2022 e deixou de liderar em 2026): demanda baixa × oferta alta de
+#     programas federais, por dimensão
+G = pd.read_excel(GI / "classificacao_711_sete_dimensoes_G4_com_votos_lula.xlsx", sheet_name="Classificacao_711")
+G = pd.DataFrame({"cd_mun": G.IBGE.astype(int), "g4_n": G["Nº G4"], "g4_dimensoes": G["Dimensões G4"].astype("string"), "g4_perfil": G["Perfil final (G4)"].astype("string")})
+t = t.merge(G, on="cd_mun", how="left")
+
+# (e) o que o SITE do mutirão mostra por município (com teto aritmético e regra
+#     "só onde Lula lidera" na abstenção): areas_95.py -> areas_mun.json
+A = json.load(open(SITE / "areas_mun.json"))["areas"]
+A = pd.DataFrame({"cd_mun": [int(a["cd"]) for a in A],
+                  "site_def_votos_teto": [a.get("v", {}).get("conv") for a in A],
+                  "site_abst_votos_teto": [a.get("a", {}).get("conv") for a in A],
+                  "site_abst_saldo": [a.get("a", {}).get("net") for a in A]})
+t = t.merge(A, on="cd_mun", how="left")
+
 # ---- rankings nacionais (1 = maior)
 def rk(col):
     return t[col].rank(ascending=False, method="min").astype("Int64")
@@ -119,7 +231,9 @@ for c in ["pop_censo_2022", "pct_lula_2026t1", "pct_lula_2022t1", "esperado_pct"
           "def_modelo_votos", "def_modelo_pp", "def_2022_votos", "def_2022_pp",
           "abst_modelo_votos_lula", "abst_modelo_pp", "abst_2022_votos_lula", "abst_2022_pp",
           "bolsa_familia_pct_pop", "cadunico_pct_pop", "bpc_pct_pop", "farmacia_popular_pct_pop",
-          "pe_de_meia_pct_pop", "mei_pct_pop", "emprego_formal_pct_pop", "mcmv_por_100hab"]:
+          "pe_de_meia_pct_pop", "mei_pct_pop", "emprego_formal_pct_pop", "mcmv_por_100hab",
+          "colmeia_ativar_votos", "colmeia_reconquistar_votos", "camp_votos_lula_perdidos_2022t2",
+          "camp_outros_candidatos_votos", "niele_total_votos", "niele_votos_por_mil", "site_def_votos_teto", "site_abst_votos_teto"]:
     t["rk_" + c] = rk(c)
 
 # ---- textos "mastigados" (pedido 15/10: lugar, por quê, o que fazer, o que o
@@ -212,7 +326,19 @@ COLS = ["cd_mun", "nm_mun", "uf", "pop_censo_2022", "rk_pop_censo_2022", "aptos_
         "bpc_pct_pop", "rk_bpc_pct_pop", "farmacia_popular_pct_pop", "rk_farmacia_popular_pct_pop",
         "pe_de_meia_pct_pop", "rk_pe_de_meia_pct_pop", "mei_pct_pop", "rk_mei_pct_pop",
         "emprego_formal_pct_pop", "rk_emprego_formal_pct_pop", "mcmv_por_100hab", "rk_mcmv_por_100hab",
-        "acao", "acao_motivo", "porque", "governo"]
+        "acao", "acao_motivo", "porque", "governo",
+        "site_def_votos_teto", "rk_site_def_votos_teto", "site_abst_votos_teto", "rk_site_abst_votos_teto", "site_abst_saldo",
+        "colmeia_ativar_locais", "colmeia_ativar_votos", "rk_colmeia_ativar_votos", "colmeia_ativar_eleitorado_pct",
+        "colmeia_reconquistar_locais", "colmeia_reconquistar_perda_por100", "colmeia_reconquistar_votos", "rk_colmeia_reconquistar_votos",
+        "colmeia_votos_para_vencer", "colmeia_mob_pp",
+        "camp_microrregiao", "camp_prioridade", "camp_acao_microrregiao", "camp_votos_a_buscar_microrregiao", "camp_quanto_rende_microrregiao",
+        "camp_locais", "camp_locais_prioridade1", "camp_locais_ativar", "camp_locais_conter",
+        "camp_votos_lula_perdidos_2022t2", "rk_camp_votos_lula_perdidos_2022t2", "camp_outros_candidatos_votos", "rk_camp_outros_candidatos_votos",
+        "camp_variacao_diferenca_pp", "camp_desempenho_2022t2_pct", "camp_desempenho_2026_pct", "camp_variacao_desempenho_pp",
+        "niele_1t_total", "niele_1t_reconversao", "niele_1t_terceira_via", "niele_1t_brancos_nulos", "niele_1t_comparecimento",
+        "niele_2t_total", "niele_2t_reconversao", "niele_2t_terceira_via", "niele_2t_brancos_nulos", "niele_2t_comparecimento",
+        "niele_persuasao_votos", "niele_mobilizacao_votos", "niele_total_votos", "rk_niele_total_votos", "niele_votos_por_mil", "rk_niele_votos_por_mil", "niele_estrategia",
+        "g4_n", "g4_dimensoes", "g4_perfil"]
 t = t[COLS].rename(columns={"nm_mun": "municipio", "pop_censo_2022": "pop_2022",
                             "votos_validos_2026t1": "validos_2026", "pct_lula_2026t1": "lula_2026_pct",
                             "pct_flavio_2026t1": "flavio_2026_pct", "pct_lula_2022t1": "lula_2022t1_pct",
@@ -226,6 +352,62 @@ t = t.sort_values("rk_def_modelo_votos")
 t.to_csv(E / "ranking_municipios.csv", index=False)
 t.to_parquet(E / "ranking_municipios.parquet", index=False)
 t.to_csv(SITE / "ranking_municipios.csv", index=False)
+DIC = {
+ "cd_mun": ("Código IBGE do município (7 dígitos)", "IBGE"), "municipio": ("Nome", "IBGE"), "uf": ("UF", "IBGE"),
+ "pop_2022": ("População, Censo 2022", "IBGE"), "aptos_2026": ("Eleitores aptos, 1T 2026", "TSE"), "validos_2026": ("Votos válidos para presidente, 1T 2026", "TSE"),
+ "lula_2026_pct": ("Fatia de Lula nos válidos, 1T 2026 (%)", "TSE"), "flavio_2026_pct": ("Fatia de Flávio, 1T 2026 (%)", "TSE"), "lula_lidera": ("Lula à frente de Flávio em 2026", "TSE"),
+ "lula_2022t1_pct": ("Fatia de Lula, 1T 2022 (%)", "TSE"), "lula_2022t2_pct": ("Fatia de Lula, 2T 2022 (%)", "TSE"),
+ "lula_esperado_pct": ("Fatia esperada pelo modelo de voto do mutirão (soma dos setores)", "modelo_lula_72"),
+ "def_modelo_pp": ("Esperado − real, pontos (positivo = faltaram votos)", "modelo_lula_72"), "def_modelo_votos": ("Déficit em votos: Σ (esperado − real) × válidos dos setores", "modelo_lula_72"),
+ "def_2022_pp": ("Fatia 1T 2022 − fatia 1T 2026, pontos", "TSE"), "def_2022_votos": ("Queda em pontos × válidos de 2026", "TSE"),
+ "abst_2026_pct": ("Abstenção oficial, 1T 2026 (% dos aptos)", "TSE"), "abst_esperada_pct": ("Abstenção esperada pelo modelo (soma dos setores)", "modelo_abst_75"),
+ "abst_modelo_pp": ("Abstenção real − esperada, pontos, na base de setores do modelo", "modelo_abst_75"), "abst_modelo_votos_lula": ("Σ excesso × aptos × fatia de Lula dos setores", "modelo_abst_75"),
+ "abst_modelo_saldo_lula_flavio": ("Σ excesso × aptos × (Lula − Flávio)", "modelo_abst_75"),
+ "abst_2022t2_pct": ("Abstenção oficial, 2T 2022 (%)", "TSE"), "abst_2022t1_pct": ("Abstenção oficial, 1T 2022 (%)", "TSE"),
+ "abst_2022_pp": ("Abstenção 2026 − abstenção 2T 2022, pontos", "TSE"), "abst_2022_eleitores": ("Eleitores a mais em casa: excesso × aptos 2026", "TSE"), "abst_2022_votos_lula": ("Eleitores a mais em casa × fatia de Lula 2026", "TSE"),
+ "bolsa_familia_pct_pop": ("Pessoas em famílias do Bolsa Família, % da pop. (ago/2026)", "MDS"), "cadunico_pct_pop": ("Pessoas no CadÚnico, % da pop. (ago/2026)", "MDS"), "bpc_pct_pop": ("Beneficiários do BPC, % da pop. (ago/2026)", "MDS"),
+ "farmacia_popular_pct_pop": ("Atendidos pela Farmácia Popular no ano, % da pop. (até ago/2026)", "ComunicaBR/MS"), "pe_de_meia_pct_pop": ("Estudantes no Pé-de-Meia, % da pop. (até mar/2026)", "ComunicaBR/MEC"),
+ "mei_pct_pop": ("MEI cadastrados, % da pop. (até jun/2026)", "ComunicaBR/MF"), "emprego_formal_pct_pop": ("Empregos formais, % da pop. (até jul/2026)", "ComunicaBR/MTE"), "mcmv_por_100hab": ("Moradias do MCMV desde 2023 por 100 hab. (até jul/2026)", "ComunicaBR/MCID"),
+ "acao": ("O que fazer (regra na página /municipios)", "mutirão"), "acao_motivo": ("Motivo curto da ação", "mutirão"), "porque": ("As quatro réguas em frases", "mutirão"), "governo": ("Programas em que o município está mais alto no país", "mutirão"),
+ "site_def_votos_teto": ("Votos a recuperar como o site mostra: déficit do modelo cortado em zero e no teto aritmético", "mutirão/areas_95"),
+ "site_abst_votos_teto": ("Votos na abstenção excedente como o site mostra: com teto e só onde Lula lidera (0 onde não lidera)", "mutirão/areas_95"), "site_abst_saldo": ("Saldo Lula − Flávio da abstenção excedente, só onde Lula lidera", "mutirão/areas_95"),
+ "colmeia_ativar_locais": ("Locais de votação do indicador Ativar (Lula forte e abstenção subiu desde 1T 2022, por local)", "Colmeia 12/10"),
+ "colmeia_ativar_votos": ("Simulação do Ativar: votos que Lula teria se os ausentes adicionais votassem como o local, somando os locais da cidade", "Colmeia 12/10"),
+ "colmeia_ativar_eleitorado_pct": ("Parcela do eleitorado da cidade em locais do Ativar (%)", "Colmeia 12/10"),
+ "colmeia_reconquistar_locais": ("Linhas do Reconquistar (setores/locais onde Lula perdeu parcela desde o 1T 2022)", "Colmeia 12/10"),
+ "colmeia_reconquistar_perda_por100": ("Perda de parcela de Lula, votos a cada 100 eleitores, ajustada pelo ruído (média da cidade)", "Colmeia 12/10"),
+ "colmeia_reconquistar_votos": ("Perda de parcela em votos (queda × quem compareceu em 2026)", "Colmeia 12/10"),
+ "colmeia_votos_para_vencer": ("Votos que faltam a Lula para vencer Flávio na cidade (0 onde já vence)", "Colmeia 12/10"),
+ "colmeia_mob_pp": ("100 × abstenção/aptos × (Lula − Flávio)/válidos: margem que a abstenção devolveria votando como a cidade", "Colmeia 12/10"),
+ "camp_microrregiao": ("Microrregião IBGE da cidade no painel da campanha (só o território prioritário: 3.236 municípios, 20 UFs)", "painel da campanha 12/10"),
+ "camp_prioridade": ("Prioridade da metodologia da Amanda (12/10): microrregião prioritária / estado inteiro / estado inteiro, por onde começar", "painel da campanha 12/10"),
+ "camp_acao_microrregiao": ("Ação principal da microrregião na ficha da coordenação (Mobilização, Conversão, Reconversão, Abstenção do Flávio)", "painel da campanha 12/10"),
+ "camp_votos_a_buscar_microrregiao": ("Meta de votos a buscar da MICRORREGIÃO (não é da cidade; não somar)", "painel da campanha 12/10"), "camp_quanto_rende_microrregiao": ("Quanto rende (votos) da microrregião", "painel da campanha 12/10"),
+ "camp_locais": ("Locais de votação da cidade na planilha do painel", "painel da campanha 12/10"), "camp_locais_prioridade1": ("Locais com etiqueta 'Prioridade 1' (onde começar, 09/10)", "painel da campanha 12/10"),
+ "camp_locais_ativar": ("Locais do lado 'ativar' (Lula na frente em 2026)", "painel da campanha 12/10"), "camp_locais_conter": ("Locais do lado 'conter' (Flávio na frente)", "painel da campanha 12/10"),
+ "camp_votos_lula_perdidos_2022t2": ("Régua do painel 'Votos que o Lula perdeu': votos de Lula no 2T 2022 − 1T 2026", "TSE"),
+ "camp_outros_candidatos_votos": ("Régua 'Outros candidatos': votos de 2026 fora Lula e Flávio (Conversão)", "TSE"),
+ "camp_variacao_diferenca_pp": ("Régua 'Variação da diferença': (Lula − Flávio 2026) − (Lula − Jair 2T 2022), pontos (Reconversão)", "TSE"),
+ "camp_desempenho_2022t2_pct": ("Régua 'Desempenho': Lula ÷ (Lula + Jair), 2T 2022 (%)", "TSE"), "camp_desempenho_2026_pct": ("Lula ÷ (Lula + Flávio), 1T 2026 (%)", "TSE"), "camp_variacao_desempenho_pp": ("Variação do desempenho, pontos", "TSE"),
+ "niele_1t_total": ("NIELE: perda de votos de Lula contra o 1T 2022 (LMDI, versão municipal oficial; positivo = perdeu)", "método NIELE, calc. mutirão"),
+ "niele_1t_reconversao": ("Parcela da perda por reconversão (q = Lula/(Lula+adversário)), base 1T 2022", "método NIELE, calc. mutirão"), "niele_1t_terceira_via": ("Parcela terceira via (r = (Lula+adv)/válidos), base 1T 2022", "método NIELE, calc. mutirão"),
+ "niele_1t_brancos_nulos": ("Parcela brancos e nulos (v = válidos/comparecimento), base 1T 2022", "método NIELE, calc. mutirão"), "niele_1t_comparecimento": ("Parcela comparecimento (c = comparecimento/aptos), base 1T 2022", "método NIELE, calc. mutirão"),
+ "niele_2t_total": ("Perda contra o 2T 2022 (potencial)", "método NIELE, calc. mutirão"), "niele_2t_reconversao": ("Reconversão, base 2T 2022", "método NIELE, calc. mutirão"), "niele_2t_terceira_via": ("Terceira via (voto em aberto), base 2T 2022", "método NIELE, calc. mutirão"),
+ "niele_2t_brancos_nulos": ("Brancos e nulos, base 2T 2022", "método NIELE, calc. mutirão"), "niele_2t_comparecimento": ("Comparecimento, base 2T 2022", "método NIELE, calc. mutirão"),
+ "niele_persuasao_votos": ("Persuasão = reconversão + terceira via + brancos/nulos, base 1T 2022", "método NIELE, calc. mutirão"), "niele_mobilizacao_votos": ("Mobilização = parcela comparecimento contra o 2T 2022, cortada em zero", "método NIELE, calc. mutirão"),
+ "niele_total_votos": ("Persuasão (≥0) + mobilização", "método NIELE, calc. mutirão"), "niele_votos_por_mil": ("Total por mil eleitores aptos (critério de ranking do NIELE)", "método NIELE, calc. mutirão"),
+ "niele_estrategia": ("Mobilização se supera a persuasão; senão Terceira via se, contra o 2T, supera a reconversão; senão Reconversão", "método NIELE, calc. mutirão"),
+ "g4_n": ("Nº de dimensões em G4 (demanda baixa, oferta alta) entre 7; só os 711 municípios do universo", "Fernando Barbalho, 13/10"),
+ "g4_dimensoes": ("Dimensões em G4", "Fernando Barbalho, 13/10"), "g4_perfil": ("Perfil final (A a K)", "Fernando Barbalho, 13/10"),
+}
+dic = []
+for c in t.columns:
+    base = c[3:] if c.startswith("rk_") else c
+    if base not in DIC: raise SystemExit(f"coluna sem dicionário: {c}")
+    d, f = DIC[base]
+    dic.append({"coluna": c, "descricao": ("Posição nacional (1 = maior) em: " + d) if c.startswith("rk_") else d, "fonte": f})
+pd.DataFrame(dic).to_csv(E / "ranking_municipios_dicionario.csv", index=False)
+pd.DataFrame(dic).to_csv(SITE / "ranking_municipios_dicionario.csv", index=False)
 
 # JSON compacto para a página (arrays; None onde falta)
 def cell(v):
@@ -234,7 +416,10 @@ def cell(v):
     if isinstance(v, (np.floating, float)): return float(v)
     if isinstance(v, (np.bool_, bool)): return bool(v)
     return v
-tj = t[[c for c in t.columns if not c.startswith("rk_") and c not in ("porque", "acao_motivo", "governo")]]  # textos: a página gera com as mesmas regras
+FORA_JSON = {"porque", "acao_motivo", "governo", "camp_quanto_rende_microrregiao", "g4_dimensoes",
+             "niele_1t_brancos_nulos", "niele_1t_comparecimento", "niele_2t_brancos_nulos", "niele_2t_reconversao", "niele_2t_terceira_via",
+             "abst_2022t1_pct", "lula_2022t2_pct", "camp_desempenho_2022t2_pct", "camp_desempenho_2026_pct"}
+tj = t[[c for c in t.columns if not c.startswith("rk_") and c not in FORA_JSON]]  # textos: a página gera com as mesmas regras
 rows = [[cell(v) for v in r] for r in tj.itertuples(index=False)]
 tot = {"def_modelo_votos": float(t.def_modelo_votos.clip(lower=0).sum()),
        "def_2022_votos": float(t.def_2022_votos.clip(lower=0).sum()),

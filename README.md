@@ -80,7 +80,31 @@ direta: `acao` (Convencer quem saiu /
 Levar à urna / Convencer e levar à urna / Só com conhecidos / Maré
 nacional, não local / Manter), `acao_motivo`, `porque` (as quatro réguas
 em frases) e `governo` (os programas em que o município está mais alto no
-país). A página segue o formato da lista de cidades dos aliados: por que
+país). Desde 15/10 à tarde a mesma linha traz também **os outros modelos
+do grupo**, na mesma moeda (votos), com dicionário de todas as colunas em
+`dados_modelo/ranking_municipios_dicionario.csv`:
+
+- `site_*`: o que o site do mutirão mostra (déficit com teto; abstenção
+  com teto e só onde Lula lidera);
+- `colmeia_*`: Ativar e Reconquistar da Colmeia por local de votação,
+  somados por cidade (índice `dados/prioritarios` e `dados/municipios` do
+  repositório colmeiabrasil/colmeia, 12/10; cópia em
+  `dados_modelo/insumos_grupo/`);
+- `camp_*`: painel da campanha (metodologia da Amanda, 12/10): microrregião,
+  prioridade, ação principal e votos a buscar da microrregião, locais do
+  território prioritário (3.236 municípios, 20 UFs), e as réguas do painel
+  refeitas do TSE (votos que Lula perdeu desde o 2T de 2022, outros
+  candidatos, variação da diferença e do desempenho);
+- `niele_*`: método do NIELE (Rodrigo Mahlmeister, "Onde Lula perdeu voto"):
+  decomposição LMDI de L = c·v·r·q em comparecimento, brancos/nulos,
+  terceira via e reconversão contra o 1T e o 2T de 2022, persuasão,
+  mobilização, total, votos por mil eleitores e estratégia dominante.
+  Versão municipal com o resultado oficial, sem o ajuste de ruído nem o
+  pareamento de locais do original; os totais nacionais batem com os dele
+  (reconversão 1T 4,47 mi vs 4,45; terceira via 2T 4,41 mi vs 4,40);
+- `g4_*`: classificação G4 do Fernando Barbalho (711 municípios).
+
+A página segue o formato da lista de cidades dos aliados: por que
 importa, o que fazer e quatro colunas do que o governo faz ali
 (`site/dados/destaques_mun.json`, programas em que o município está entre
 os 20% com mais do país). Script: `regioes/ranking_municipios_110.py`.

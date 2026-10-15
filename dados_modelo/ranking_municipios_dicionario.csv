@@ -1,0 +1,112 @@
+coluna,descricao,fonte
+cd_mun,Código IBGE do município (7 dígitos),IBGE
+municipio,Nome,IBGE
+uf,UF,IBGE
+pop_2022,"População, Censo 2022",IBGE
+rk_pop_2022,"Posição nacional (1 = maior) em: População, Censo 2022",IBGE
+aptos_2026,"Eleitores aptos, 1T 2026",TSE
+validos_2026,"Votos válidos para presidente, 1T 2026",TSE
+lula_2026_pct,"Fatia de Lula nos válidos, 1T 2026 (%)",TSE
+rk_lula_2026_pct,"Posição nacional (1 = maior) em: Fatia de Lula nos válidos, 1T 2026 (%)",TSE
+flavio_2026_pct,"Fatia de Flávio, 1T 2026 (%)",TSE
+lula_lidera,Lula à frente de Flávio em 2026,TSE
+lula_2022t1_pct,"Fatia de Lula, 1T 2022 (%)",TSE
+rk_lula_2022t1_pct,"Posição nacional (1 = maior) em: Fatia de Lula, 1T 2022 (%)",TSE
+lula_2022t2_pct,"Fatia de Lula, 2T 2022 (%)",TSE
+lula_esperado_pct,Fatia esperada pelo modelo de voto do mutirão (soma dos setores),modelo_lula_72
+rk_lula_esperado_pct,Posição nacional (1 = maior) em: Fatia esperada pelo modelo de voto do mutirão (soma dos setores),modelo_lula_72
+def_modelo_pp,"Esperado − real, pontos (positivo = faltaram votos)",modelo_lula_72
+def_modelo_votos,Déficit em votos: Σ (esperado − real) × válidos dos setores,modelo_lula_72
+rk_def_modelo_votos,Posição nacional (1 = maior) em: Déficit em votos: Σ (esperado − real) × válidos dos setores,modelo_lula_72
+rk_def_modelo_pp,"Posição nacional (1 = maior) em: Esperado − real, pontos (positivo = faltaram votos)",modelo_lula_72
+def_2022_pp,"Fatia 1T 2022 − fatia 1T 2026, pontos",TSE
+def_2022_votos,Queda em pontos × válidos de 2026,TSE
+rk_def_2022_votos,Posição nacional (1 = maior) em: Queda em pontos × válidos de 2026,TSE
+rk_def_2022_pp,"Posição nacional (1 = maior) em: Fatia 1T 2022 − fatia 1T 2026, pontos",TSE
+abst_2026_pct,"Abstenção oficial, 1T 2026 (% dos aptos)",TSE
+rk_abst_2026_pct,"Posição nacional (1 = maior) em: Abstenção oficial, 1T 2026 (% dos aptos)",TSE
+abst_esperada_pct,Abstenção esperada pelo modelo (soma dos setores),modelo_abst_75
+abst_modelo_pp,"Abstenção real − esperada, pontos, na base de setores do modelo",modelo_abst_75
+abst_modelo_votos_lula,Σ excesso × aptos × fatia de Lula dos setores,modelo_abst_75
+abst_modelo_saldo_lula_flavio,Σ excesso × aptos × (Lula − Flávio),modelo_abst_75
+rk_abst_modelo_votos_lula,Posição nacional (1 = maior) em: Σ excesso × aptos × fatia de Lula dos setores,modelo_abst_75
+rk_abst_modelo_pp,"Posição nacional (1 = maior) em: Abstenção real − esperada, pontos, na base de setores do modelo",modelo_abst_75
+abst_2022t2_pct,"Abstenção oficial, 2T 2022 (%)",TSE
+abst_2022t1_pct,"Abstenção oficial, 1T 2022 (%)",TSE
+abst_2022_pp,"Abstenção 2026 − abstenção 2T 2022, pontos",TSE
+abst_2022_eleitores,Eleitores a mais em casa: excesso × aptos 2026,TSE
+abst_2022_votos_lula,Eleitores a mais em casa × fatia de Lula 2026,TSE
+rk_abst_2022_votos_lula,Posição nacional (1 = maior) em: Eleitores a mais em casa × fatia de Lula 2026,TSE
+rk_abst_2022_pp,"Posição nacional (1 = maior) em: Abstenção 2026 − abstenção 2T 2022, pontos",TSE
+bolsa_familia_pct_pop,"Pessoas em famílias do Bolsa Família, % da pop. (ago/2026)",MDS
+rk_bolsa_familia_pct_pop,"Posição nacional (1 = maior) em: Pessoas em famílias do Bolsa Família, % da pop. (ago/2026)",MDS
+cadunico_pct_pop,"Pessoas no CadÚnico, % da pop. (ago/2026)",MDS
+rk_cadunico_pct_pop,"Posição nacional (1 = maior) em: Pessoas no CadÚnico, % da pop. (ago/2026)",MDS
+bpc_pct_pop,"Beneficiários do BPC, % da pop. (ago/2026)",MDS
+rk_bpc_pct_pop,"Posição nacional (1 = maior) em: Beneficiários do BPC, % da pop. (ago/2026)",MDS
+farmacia_popular_pct_pop,"Atendidos pela Farmácia Popular no ano, % da pop. (até ago/2026)",ComunicaBR/MS
+rk_farmacia_popular_pct_pop,"Posição nacional (1 = maior) em: Atendidos pela Farmácia Popular no ano, % da pop. (até ago/2026)",ComunicaBR/MS
+pe_de_meia_pct_pop,"Estudantes no Pé-de-Meia, % da pop. (até mar/2026)",ComunicaBR/MEC
+rk_pe_de_meia_pct_pop,"Posição nacional (1 = maior) em: Estudantes no Pé-de-Meia, % da pop. (até mar/2026)",ComunicaBR/MEC
+mei_pct_pop,"MEI cadastrados, % da pop. (até jun/2026)",ComunicaBR/MF
+rk_mei_pct_pop,"Posição nacional (1 = maior) em: MEI cadastrados, % da pop. (até jun/2026)",ComunicaBR/MF
+emprego_formal_pct_pop,"Empregos formais, % da pop. (até jul/2026)",ComunicaBR/MTE
+rk_emprego_formal_pct_pop,"Posição nacional (1 = maior) em: Empregos formais, % da pop. (até jul/2026)",ComunicaBR/MTE
+mcmv_por_100hab,Moradias do MCMV desde 2023 por 100 hab. (até jul/2026),ComunicaBR/MCID
+rk_mcmv_por_100hab,Posição nacional (1 = maior) em: Moradias do MCMV desde 2023 por 100 hab. (até jul/2026),ComunicaBR/MCID
+acao,O que fazer (regra na página /municipios),mutirão
+acao_motivo,Motivo curto da ação,mutirão
+porque,As quatro réguas em frases,mutirão
+governo,Programas em que o município está mais alto no país,mutirão
+site_def_votos_teto,Votos a recuperar como o site mostra: déficit do modelo cortado em zero e no teto aritmético,mutirão/areas_95
+rk_site_def_votos_teto,Posição nacional (1 = maior) em: Votos a recuperar como o site mostra: déficit do modelo cortado em zero e no teto aritmético,mutirão/areas_95
+site_abst_votos_teto,Votos na abstenção excedente como o site mostra: com teto e só onde Lula lidera (0 onde não lidera),mutirão/areas_95
+rk_site_abst_votos_teto,Posição nacional (1 = maior) em: Votos na abstenção excedente como o site mostra: com teto e só onde Lula lidera (0 onde não lidera),mutirão/areas_95
+site_abst_saldo,"Saldo Lula − Flávio da abstenção excedente, só onde Lula lidera",mutirão/areas_95
+colmeia_ativar_locais,"Locais de votação do indicador Ativar (Lula forte e abstenção subiu desde 1T 2022, por local)",Colmeia 12/10
+colmeia_ativar_votos,"Simulação do Ativar: votos que Lula teria se os ausentes adicionais votassem como o local, somando os locais da cidade",Colmeia 12/10
+rk_colmeia_ativar_votos,"Posição nacional (1 = maior) em: Simulação do Ativar: votos que Lula teria se os ausentes adicionais votassem como o local, somando os locais da cidade",Colmeia 12/10
+colmeia_ativar_eleitorado_pct,Parcela do eleitorado da cidade em locais do Ativar (%),Colmeia 12/10
+colmeia_reconquistar_locais,Linhas do Reconquistar (setores/locais onde Lula perdeu parcela desde o 1T 2022),Colmeia 12/10
+colmeia_reconquistar_perda_por100,"Perda de parcela de Lula, votos a cada 100 eleitores, ajustada pelo ruído (média da cidade)",Colmeia 12/10
+colmeia_reconquistar_votos,Perda de parcela em votos (queda × quem compareceu em 2026),Colmeia 12/10
+rk_colmeia_reconquistar_votos,Posição nacional (1 = maior) em: Perda de parcela em votos (queda × quem compareceu em 2026),Colmeia 12/10
+colmeia_votos_para_vencer,Votos que faltam a Lula para vencer Flávio na cidade (0 onde já vence),Colmeia 12/10
+colmeia_mob_pp,100 × abstenção/aptos × (Lula − Flávio)/válidos: margem que a abstenção devolveria votando como a cidade,Colmeia 12/10
+camp_microrregiao,"Microrregião IBGE da cidade no painel da campanha (só o território prioritário: 3.236 municípios, 20 UFs)",painel da campanha 12/10
+camp_prioridade,"Prioridade da metodologia da Amanda (12/10): microrregião prioritária / estado inteiro / estado inteiro, por onde começar",painel da campanha 12/10
+camp_acao_microrregiao,"Ação principal da microrregião na ficha da coordenação (Mobilização, Conversão, Reconversão, Abstenção do Flávio)",painel da campanha 12/10
+camp_votos_a_buscar_microrregiao,Meta de votos a buscar da MICRORREGIÃO (não é da cidade; não somar),painel da campanha 12/10
+camp_quanto_rende_microrregiao,Quanto rende (votos) da microrregião,painel da campanha 12/10
+camp_locais,Locais de votação da cidade na planilha do painel,painel da campanha 12/10
+camp_locais_prioridade1,"Locais com etiqueta 'Prioridade 1' (onde começar, 09/10)",painel da campanha 12/10
+camp_locais_ativar,Locais do lado 'ativar' (Lula na frente em 2026),painel da campanha 12/10
+camp_locais_conter,Locais do lado 'conter' (Flávio na frente),painel da campanha 12/10
+camp_votos_lula_perdidos_2022t2,Régua do painel 'Votos que o Lula perdeu': votos de Lula no 2T 2022 − 1T 2026,TSE
+rk_camp_votos_lula_perdidos_2022t2,Posição nacional (1 = maior) em: Régua do painel 'Votos que o Lula perdeu': votos de Lula no 2T 2022 − 1T 2026,TSE
+camp_outros_candidatos_votos,Régua 'Outros candidatos': votos de 2026 fora Lula e Flávio (Conversão),TSE
+rk_camp_outros_candidatos_votos,Posição nacional (1 = maior) em: Régua 'Outros candidatos': votos de 2026 fora Lula e Flávio (Conversão),TSE
+camp_variacao_diferenca_pp,"Régua 'Variação da diferença': (Lula − Flávio 2026) − (Lula − Jair 2T 2022), pontos (Reconversão)",TSE
+camp_desempenho_2022t2_pct,"Régua 'Desempenho': Lula ÷ (Lula + Jair), 2T 2022 (%)",TSE
+camp_desempenho_2026_pct,"Lula ÷ (Lula + Flávio), 1T 2026 (%)",TSE
+camp_variacao_desempenho_pp,"Variação do desempenho, pontos",TSE
+niele_1t_total,"NIELE: perda de votos de Lula contra o 1T 2022 (LMDI, versão municipal oficial; positivo = perdeu)","método NIELE, calc. mutirão"
+niele_1t_reconversao,"Parcela da perda por reconversão (q = Lula/(Lula+adversário)), base 1T 2022","método NIELE, calc. mutirão"
+niele_1t_terceira_via,"Parcela terceira via (r = (Lula+adv)/válidos), base 1T 2022","método NIELE, calc. mutirão"
+niele_1t_brancos_nulos,"Parcela brancos e nulos (v = válidos/comparecimento), base 1T 2022","método NIELE, calc. mutirão"
+niele_1t_comparecimento,"Parcela comparecimento (c = comparecimento/aptos), base 1T 2022","método NIELE, calc. mutirão"
+niele_2t_total,Perda contra o 2T 2022 (potencial),"método NIELE, calc. mutirão"
+niele_2t_reconversao,"Reconversão, base 2T 2022","método NIELE, calc. mutirão"
+niele_2t_terceira_via,"Terceira via (voto em aberto), base 2T 2022","método NIELE, calc. mutirão"
+niele_2t_brancos_nulos,"Brancos e nulos, base 2T 2022","método NIELE, calc. mutirão"
+niele_2t_comparecimento,"Comparecimento, base 2T 2022","método NIELE, calc. mutirão"
+niele_persuasao_votos,"Persuasão = reconversão + terceira via + brancos/nulos, base 1T 2022","método NIELE, calc. mutirão"
+niele_mobilizacao_votos,"Mobilização = parcela comparecimento contra o 2T 2022, cortada em zero","método NIELE, calc. mutirão"
+niele_total_votos,Persuasão (≥0) + mobilização,"método NIELE, calc. mutirão"
+rk_niele_total_votos,Posição nacional (1 = maior) em: Persuasão (≥0) + mobilização,"método NIELE, calc. mutirão"
+niele_votos_por_mil,Total por mil eleitores aptos (critério de ranking do NIELE),"método NIELE, calc. mutirão"
+rk_niele_votos_por_mil,Posição nacional (1 = maior) em: Total por mil eleitores aptos (critério de ranking do NIELE),"método NIELE, calc. mutirão"
+niele_estrategia,"Mobilização se supera a persuasão; senão Terceira via se, contra o 2T, supera a reconversão; senão Reconversão","método NIELE, calc. mutirão"
+g4_n,"Nº de dimensões em G4 (demanda baixa, oferta alta) entre 7; só os 711 municípios do universo","Fernando Barbalho, 13/10"
+g4_dimensoes,Dimensões em G4,"Fernando Barbalho, 13/10"
+g4_perfil,Perfil final (A a K),"Fernando Barbalho, 13/10"

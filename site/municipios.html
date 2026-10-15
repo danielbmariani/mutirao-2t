@@ -42,6 +42,11 @@
   td .meta.ativo { color: var(--acento); font-weight: 700; font-size: 13px; }
   td .rk { color: var(--sub); font-weight: 400; font-size: 11px; margin-left: 4px; }
   td .cai { color: var(--acento); } td .sobe { color: #2d6a4f; }
+  td .om { margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--linha); }
+  td .om .mod { display: block; margin: 1px 0; }
+  td .om .mod b { font-weight: 600; color: #555; }
+  td .om .mod.ativo, td .om .mod.ativo b { color: var(--acento); font-weight: 700; }
+  td .outros { display: block; margin-top: 5px; padding-top: 4px; border-top: 1px dashed var(--linha); }
   td .lk { font-size: 11px; margin-top: 4px; display: block; }
   td .ac { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
   .a-conv .ac { background: #f6e3e4; color: #6e1216; }
@@ -65,7 +70,7 @@
   .mais { display: block; margin: 10px auto 0; font: inherit; font-size: 13px; font-weight: 600;
     color: var(--acento); background: none; border: 0; cursor: pointer; }
   /* tabela completa (todas as colunas) */
-  table.completa { min-width: 1750px; font-size: 12.5px; }
+  table.completa { min-width: 3400px; font-size: 12.5px; }
   table.completa th, table.completa td { padding: 5px 8px; white-space: nowrap; text-align: right; }
   table.completa th { cursor: pointer; }
   table.completa th.txt, table.completa td.txt { text-align: left; }
@@ -133,7 +138,19 @@
     <option value="def_2022_votos">Mais votos perdidos desde 2022 primeiro</option>
     <option value="abst_modelo_votos_lula">Mais votos de Lula na abstenção a mais primeiro (esperada)</option>
     <option value="abst_2022_eleitores">Mais eleitores a mais em casa que em 2022 primeiro</option>
+    <option value="colmeia_ativar_votos">Colmeia, Ativar: mais votos na simulação primeiro</option>
+    <option value="colmeia_reconquistar_votos">Colmeia, Reconquistar: mais votos perdidos primeiro</option>
+    <option value="camp_votos_lula_perdidos_2022t2">Painel da campanha: mais votos perdidos desde o 2T de 2022 primeiro</option>
+    <option value="niele_total_votos">NIELE: mais votos a recuperar primeiro</option>
+    <option value="niele_votos_por_mil">NIELE: mais votos a recuperar por mil eleitores primeiro</option>
     <option value="pop_2022">Maiores cidades primeiro</option>
+  </select>
+  <select id="camp" aria-label="Ação do painel da campanha">
+    <option value="">Painel da campanha: qualquer</option>
+    <option value="Mobilização">Painel: ação Mobilização</option>
+    <option value="Conversão">Painel: ação Conversão</option>
+    <option value="Reconversão">Painel: ação Reconversão</option>
+    <option value="fora">Fora do território prioritário</option>
   </select>
 </div>
 <p class="resumo" id="resumo"></p>
@@ -171,12 +188,27 @@
   Família, BPC, Farmácia Popular, Pé-de-Meia, Minha Casa Minha Vida, Mais Médicos, Pronampe, Plano Safra
   e outros, do painel ComunicaBR e do MDS). A lista completa, com fonte e data, está no card da cidade no
   mapa do mutirão. Fontes: TSE, IBGE, Secom/PR, MDS, MTE, INEP, Ministério das Cidades.</p>
+  <p><b>Os outros modelos do grupo</b>, na mesma linha. <b>Colmeia</b> (indicadores publicados em 12/10, por
+  local de votação): Ativar = locais onde Lula é forte e a abstenção subiu desde o 1º turno de 2022, com a
+  simulação de quantos votos ele teria se os ausentes adicionais votassem como o local; Reconquistar = perda de
+  parcela de Lula entre os votos válidos, em votos a cada 100 eleitores e em votos, ajustada pelo acaso.
+  <b>Painel da campanha</b> (metodologia da Amanda, 12/10): a ação principal e a prioridade da microrregião da
+  cidade, os locais do território prioritário (3.236 municípios em 20 estados) e as réguas do painel refeitas
+  com o resultado oficial: votos que Lula perdeu desde o 2º turno de 2022, votos em outros candidatos e variação
+  da diferença para o adversário. <b>NIELE</b> (método do Rodrigo Mahlmeister, "Onde Lula perdeu voto"): a perda
+  de votos de Lula por eleitor decomposta em comparecimento, brancos e nulos, terceira via e reconversão, contra
+  o 1º e o 2º turno de 2022; persuasão = as três últimas contra o 1º turno, mobilização = comparecimento contra o
+  2º turno; a estratégia é a parcela dominante e o ranking é por votos por mil eleitores. Aqui a conta é por
+  município, com o resultado oficial, sem o ajuste de ruído nem o pareamento de locais do original.
+  <b>G4</b> (Fernando Barbalho, 13/10): nos 711 municípios em que Lula liderou no 1º turno de 2022 e deixou de
+  liderar em 2026, as dimensões de políticas públicas com demanda baixa e oferta alta, onde material sobre as
+  entregas do governo tende a render mais.</p>
   <p>Os mesmos números, com todas as colunas e a posição nacional em cada uma, estão na
   <button type="button" id="abre-completa" style="font:inherit;color:var(--link);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline">tabela completa</button>
   e no CSV (<a href="dados/ranking_municipios.csv" download>baixar</a>;
   <a href="https://github.com/danielbmariani/mutirao-2t" target="_blank" rel="noopener">GitHub</a>,
-  arquivo <code>dados_modelo/ranking_municipios.csv</code>, com a leitura de cada município nas colunas
-  <code>acao</code>, <code>porque</code> e <code>governo</code>).</p>
+  arquivo <code>dados_modelo/ranking_municipios.csv</code>, com dicionário de colunas em
+  <code>ranking_municipios_dicionario.csv</code>).</p>
 </div>
 </main>
 <script>
@@ -196,7 +228,9 @@ const ACOES = { "Convencer quem saiu": "a-conv", "Levar à urna": "a-urna", "Con
 const TEMAS = [["s", "Proteção social"], ["e", "Saúde e educação"], ["t", "Trabalho e economia"], ["m", "Moradia e infraestrutura"]];
 const ORDENS = { def_modelo_votos: "votos a recuperar", def_2022_votos: "votos perdidos desde 2022",
   abst_modelo_votos_lula: "votos de Lula na abstenção acima da esperada", abst_2022_eleitores: "eleitores a mais em casa que no 2º turno de 2022",
-  pop_2022: "habitantes" };
+  colmeia_ativar_votos: "votos na simulação do Ativar (Colmeia)", colmeia_reconquistar_votos: "votos perdidos por parcela (Reconquistar, Colmeia)",
+  camp_votos_lula_perdidos_2022t2: "votos que Lula perdeu desde o 2º turno de 2022 (painel)", niele_total_votos: "votos a recuperar (NIELE)",
+  niele_votos_por_mil: "votos por mil eleitores (NIELE)", pop_2022: "habitantes" };
 let ROWS = [], RK = {}, N = 0, DEST = null, limite = 50, modo = "r";
 let stc = { k: "def_modelo_votos", asc: false };   // ordenação da tabela completa
 function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -217,9 +251,10 @@ const rk = (k, r) => RK[k] ? RK[k].get(r.cd_mun) : null;
 function posTxt(k, r) { const p = rk(k, r); return p ? `${fmtInt(p)}º do país` : ""; }
 
 function filtradas() {
-  const q = semAcento($("busca").value.trim()), uf = $("uf").value, pop = +$("pop").value, lid = $("lid").value, ac = $("ac").value;
+  const q = semAcento($("busca").value.trim()), uf = $("uf").value, pop = +$("pop").value, lid = $("lid").value, ac = $("ac").value, cp = $("camp").value;
   const l = ROWS.filter(r => (!uf || r.uf === uf) && (r.pop_2022 || 0) >= pop &&
-    (lid === "" || (lid === "1") === !!r.lula_lidera) && (!ac || r.acao === ac) && (!q || r._n.includes(q)));
+    (lid === "" || (lid === "1") === !!r.lula_lidera) && (!ac || r.acao === ac) && (!q || r._n.includes(q)) &&
+    (!cp || (cp === "fora" ? r.camp_microrregiao == null : r.camp_acao_microrregiao === cp)));
   const k = modo === "c" ? stc.k : $("ordem").value;
   const asc = modo === "c" ? stc.asc : false;
   const txt = typeof (ROWS[0] || {})[k] === "string";
@@ -262,12 +297,29 @@ function celPorque(r, ordem) {
   const s2 = d2 >= 0.5 ? `≈ ${fmtMil(r.abst_2022_eleitores)} eleitores a mais em casa que no 2º turno de 2022`
     : d2 > -0.5 ? "abstenção igual à do 2º turno de 2022" : `menos abstenção que no 2º turno de 2022 (${fmt1(-d2)} pontos)`;
   t.append(linha("abst_2022_eleitores", el("span", "meta", s2)));
+  // outros modelos do grupo, na mesma moeda (votos)
+  const om = el("span", "meta om");
+  const parte = (k, nome, txt) => { const x = el("span", "mod" + (k === ordem ? " ativo" : "")); x.append(el("b", null, nome + ": "), txt); if (k === ordem) x.append(el("span", "rk", posTxt(k, r))); return x; };
+  if (r.colmeia_ativar_votos != null || r.colmeia_reconquistar_votos != null)
+    om.append(parte("colmeia_ativar_votos", "Colmeia", `Ativar ≈ ${fmtMil(r.colmeia_ativar_votos || 0)} votos em ${fmtInt(r.colmeia_ativar_locais || 0)} locais; Reconquistar ≈ ${fmtMil(r.colmeia_reconquistar_votos || 0)} votos (${fmt1(r.colmeia_reconquistar_perda_por100 || 0)} por 100 eleitores)`));
+  if (r.colmeia_reconquistar_votos != null && ordem === "colmeia_reconquistar_votos") om.lastChild.append(el("span", "rk", posTxt("colmeia_reconquistar_votos", r)));
+  if (r.niele_total_votos != null)
+    om.append(parte(ordem === "niele_votos_por_mil" ? "niele_votos_por_mil" : "niele_total_votos", "NIELE", `≈ ${fmtMil(r.niele_total_votos)} votos a recuperar (${fmt1(r.niele_votos_por_mil)} por mil eleitores): persuasão ${fmtMil(r.niele_persuasao_votos)}, mobilização ${fmtMil(r.niele_mobilizacao_votos)}`));
+  if (r.camp_votos_lula_perdidos_2022t2 != null)
+    om.append(parte("camp_votos_lula_perdidos_2022t2", "Painel da campanha", `Lula perdeu ≈ ${fmtMil(r.camp_votos_lula_perdidos_2022t2)} votos desde o 2º turno de 2022; ${fmtMil(r.camp_outros_candidatos_votos)} votos em outros candidatos`));
+  t.append(om);
   return t;
 }
 function celAcao(r) {
   const [a, mot] = acao(r);
   const t = td("", "acao " + (ACOES[a] || "")); t.dataset.rot = "O que fazer";
   t.append(el("span", "ac", a), el("span", "mot", mot));
+  const out = el("span", "outros");
+  if (r.camp_microrregiao != null) out.append(el("span", "meta", `Painel da campanha: ${r.camp_acao_microrregiao || "sem ação"} (microrregião ${r.camp_microrregiao}; ${String(r.camp_prioridade || "").toLowerCase()})`));
+  else out.append(el("span", "meta", "Painel da campanha: fora do território prioritário"));
+  if (r.niele_estrategia) out.append(el("span", "meta", `NIELE: ${r.niele_estrategia}`));
+  if (r.g4_perfil) out.append(el("span", "meta", `G4 (Fernando): ${r.g4_perfil}`));
+  t.append(out);
   const lk = el("a", "lk", "quem do campo aliado tem voto aqui ↗");
   lk.href = "https://aliados-2t.vercel.app/cidades#q=" + encodeURIComponent(r.municipio); lk.target = "_blank"; lk.rel = "noopener";
   t.append(lk);
@@ -342,6 +394,41 @@ const COLS = [
   { k: "mei_pct_pop", rot: "MEI", g: "Programas federais, % da população", tipo: "pct" },
   { k: "emprego_formal_pct_pop", rot: "Emprego formal", g: "Programas federais, % da população", tipo: "pct" },
   { k: "mcmv_por_100hab", rot: "MCMV (por 100 hab.)", g: "Programas federais, % da população", tipo: "pct" },
+  { k: "site_def_votos_teto", rot: "déficit c/ teto (votos)", g: "Site do mutirão", tipo: "int" },
+  { k: "site_abst_votos_teto", rot: "abst. c/ teto, só onde lidera", g: "Site do mutirão", tipo: "int" },
+  { k: "site_abst_saldo", rot: "saldo Lula − Flávio", g: "Site do mutirão", tipo: "int" },
+  { k: "colmeia_ativar_locais", rot: "Ativar: locais", g: "Colmeia (por local de votação)", tipo: "int" },
+  { k: "colmeia_ativar_votos", rot: "Ativar: votos (simulação)", g: "Colmeia (por local de votação)", tipo: "int" },
+  { k: "colmeia_ativar_eleitorado_pct", rot: "Ativar: % do eleitorado", g: "Colmeia (por local de votação)", tipo: "pct" },
+  { k: "colmeia_reconquistar_locais", rot: "Reconquistar: linhas", g: "Colmeia (por local de votação)", tipo: "int" },
+  { k: "colmeia_reconquistar_perda_por100", rot: "Reconquistar: perda por 100 eleitores", g: "Colmeia (por local de votação)", tipo: "pct" },
+  { k: "colmeia_reconquistar_votos", rot: "Reconquistar: votos perdidos", g: "Colmeia (por local de votação)", tipo: "int" },
+  { k: "colmeia_votos_para_vencer", rot: "votos para vencer", g: "Colmeia (por local de votação)", tipo: "int" },
+  { k: "colmeia_mob_pp", rot: "mob (pp)", g: "Colmeia (por local de votação)", tipo: "pp" },
+  { k: "camp_acao_microrregiao", rot: "ação da microrregião", g: "Painel da campanha", tipo: "txt" },
+  { k: "camp_prioridade", rot: "prioridade", g: "Painel da campanha", tipo: "txt" },
+  { k: "camp_microrregiao", rot: "microrregião", g: "Painel da campanha", tipo: "txt" },
+  { k: "camp_votos_a_buscar_microrregiao", rot: "votos a buscar (microrregião)", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_locais", rot: "locais", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_locais_prioridade1", rot: "locais prioridade 1", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_locais_ativar", rot: "locais lado ativar", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_locais_conter", rot: "locais lado conter", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_votos_lula_perdidos_2022t2", rot: "votos que Lula perdeu (2T 22)", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_outros_candidatos_votos", rot: "outros candidatos (votos)", g: "Painel da campanha", tipo: "int" },
+  { k: "camp_variacao_diferenca_pp", rot: "variação da diferença (pp)", g: "Painel da campanha", tipo: "pp" },
+  { k: "camp_variacao_desempenho_pp", rot: "variação do desempenho (pp)", g: "Painel da campanha", tipo: "pp" },
+  { k: "niele_estrategia", rot: "estratégia", g: "NIELE (decomposição LMDI)", tipo: "txt" },
+  { k: "niele_total_votos", rot: "votos a recuperar", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_votos_por_mil", rot: "por mil eleitores", g: "NIELE (decomposição LMDI)", tipo: "pct" },
+  { k: "niele_persuasao_votos", rot: "persuasão (1T 22)", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_mobilizacao_votos", rot: "mobilização (2T 22)", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_1t_total", rot: "perda vs 1T 22", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_1t_reconversao", rot: "reconversão (1T)", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_1t_terceira_via", rot: "terceira via (1T)", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_2t_total", rot: "perda vs 2T 22", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "niele_2t_comparecimento", rot: "comparecimento (2T)", g: "NIELE (decomposição LMDI)", tipo: "int" },
+  { k: "g4_perfil", rot: "perfil G4", g: "G4 (Fernando)", tipo: "txt" },
+  { k: "g4_n", rot: "nº de dimensões G4", g: "G4 (Fernando)", tipo: "int" },
 ];
 const numFmt = (c, v) => c.tipo === "int" ? fmtInt(v) : c.tipo === "pp" ? (v > 0 ? "+" : "") + fmt1(v) : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 function pintaCompleta(l) {
@@ -386,7 +473,7 @@ function pinta() {
   $("mais").textContent = `Mostrar mais (${fmtInt(Math.min(100, l.length - limite))} de ${fmtInt(l.length)})`;
   const p = new URLSearchParams(); if (modo === "c") p.set("m", "c"); p.set("o", modo === "c" ? stc.k : $("ordem").value);
   if (modo === "c" && stc.asc) p.set("d", "a");
-  for (const id of ["uf", "pop", "lid", "ac"]) if ($(id).value && $(id).value !== "0") p.set(id, $(id).value);
+  for (const id of ["uf", "pop", "lid", "ac", "camp"]) if ($(id).value && $(id).value !== "0") p.set(id, $(id).value);
   if ($("busca").value.trim()) p.set("q", $("busca").value.trim());
   history.replaceState(null, "", "#" + p.toString());
 }
@@ -413,7 +500,8 @@ async function inicia() {
   if (h.get("lid") === "0" || h.get("lid") === "1") $("lid").value = h.get("lid");
   if (h.get("ac") && ACOES[h.get("ac")]) $("ac").value = h.get("ac");
   if (h.get("q")) $("busca").value = h.get("q");
-  for (const id of ["busca", "uf", "pop", "lid", "ac", "ordem"]) $(id).addEventListener("input", () => { limite = modo === "c" ? 100 : 50; pinta(); });
+  if (h.get("camp") && [...$("camp").options].some(o => o.value === h.get("camp"))) $("camp").value = h.get("camp");
+  for (const id of ["busca", "uf", "pop", "lid", "ac", "camp", "ordem"]) $(id).addEventListener("input", () => { limite = modo === "c" ? 100 : 50; pinta(); });
   $("mais").addEventListener("click", () => { limite += 100; pinta(); });
   $("abre-completa").addEventListener("click", () => { modo = "c"; limite = 100; pinta(); window.scrollTo({ top: 0, behavior: "smooth" }); });
   pinta();
