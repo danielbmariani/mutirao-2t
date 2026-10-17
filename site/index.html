@@ -225,6 +225,9 @@
   .ficha-kv { display: flex; justify-content: space-between; gap: 12px;
     padding: 2.5px 0; font-variant-numeric: tabular-nums; }
   .ficha-kv b { color: #333; font-weight: 600; text-align: right; max-width: 60%; }
+  .ficha-kv b.f1 { background: rgba(39,86,139,0.34); color: #0d2a4a; padding: 0 5px; border-radius: 4px; }
+  .ficha-kv b.f2 { background: rgba(39,86,139,0.16); color: #1d3a5c; padding: 0 5px; border-radius: 4px; }
+  .ficha-kv b.f0 { color: #9a9a9a; font-weight: 500; }
   .ficha-ctx { font-size: 11px; color: #666; margin: -2px 0 1px; line-height: 1.35; }
   .ficha-fonte { font-size: 10.5px; color: #9a9a9a; margin: -2px 0 4px; line-height: 1.35; }
   .ficha-cab { font-size: 11px; font-weight: 600; color: #777; margin: 10px 0 2px; }
@@ -344,6 +347,7 @@ addEventListener('DOMContentLoaded', function () {
   <span class="fonte-l">Por <b>Daniel Mariani</b></span>
   <button id="btn-met">Metodologia</button>
   <a href="municipios">Tabela por município</a>
+  <a href="carteira">Carteira</a>
   <a href="https://mapa-eleicoes.danielmariani.com.br" target="_blank"
      rel="noopener">Mapa da eleição ↗</a>
 </div>
@@ -517,24 +521,43 @@ async function carregaAreas(n) {
 }
 // catálogo da unidade na visão ativa, no MESMO formato das regiões
 // (nome, uf, conv, muns, perfil, ll...) para reaproveitar lista e ficha
+const AREAS_DADOS = {};   // catálogo bruto por unidade (p/ clique fora do ranking)
+// uma área (município/distrito) no formato das regiões (lista/ficha/perfil)
+function montaArea(n, x, munMap, k) {
+  const mo = x[k] || { conv: 0 };
+  const mm = n === "mun" ? [x.cd, x.nm, x.uf] :
+    (munMap.get(x.m) || [x.m, "?", "?"]);
+  const p = x.p || {};
+  return { cd: x.cd, nome: x.nm, uf: mm[2], mun_cd: mm[0],
+    mun_nm: mm[1], pop: x.pop, ll: x.ll, bb: x.bb, ...mo,
+    muns: [{ cd: mm[0], nm: mm[1], conv: mo.conv }],
+    perfil: { renda_sm: p.r, renda_percentil_br: p.rp,
+      idade_media: p.im, pct_60mais: p.p60, pct_alfabetizados: p.alf,
+      pct_urbano: p.urb, ap_pct_catolica: p.cat,
+      ap_pct_evangelica: p.eva, ap_pct_sem_religiao: p.sr,
+      ap_pct_superior: p.sup } };
+}
+// área clicada que não está no ranking (sem votos a recuperar nesta visão):
+// o card abre mesmo assim, com o perfil e os dados oficiais (15/10)
+function areaAvulsa(n, cd) {
+  const dados = AREAS_DADOS[n];
+  if (!dados) return null;
+  const x = dados.areas.find(a => a.cd === cd);
+  if (!x) return null;
+  const munMap = new Map((MUNIS || []).map(m => [m[0], m]));
+  const r = montaArea(n, x, munMap, MOEDA_CHAVE[visao]);
+  r.n = null; r.avulsa = true;
+  return r;
+}
 function catalogoAreas(n, dados) {
+  AREAS_DADOS[n] = dados;
   const k = MOEDA_CHAVE[visao];
   const munMap = new Map((MUNIS || []).map(m => [m[0], m]));
   const lista = [];
   for (const x of dados.areas) {
     const mo = x[k];
     if (!mo || !(mo.conv > 0)) continue;
-    const mm = n === "mun" ? [x.cd, x.nm, x.uf] :
-      (munMap.get(x.m) || [x.m, "?", "?"]);
-    const p = x.p || {};
-    lista.push({ cd: x.cd, nome: x.nm, uf: mm[2], mun_cd: mm[0],
-      mun_nm: mm[1], pop: x.pop, ll: x.ll, bb: x.bb, ...mo,
-      muns: [{ cd: mm[0], nm: mm[1], conv: mo.conv }],
-      perfil: { renda_sm: p.r, renda_percentil_br: p.rp,
-        idade_media: p.im, pct_60mais: p.p60, pct_alfabetizados: p.alf,
-        pct_urbano: p.urb, ap_pct_catolica: p.cat,
-        ap_pct_evangelica: p.eva, ap_pct_sem_religiao: p.sr,
-        ap_pct_superior: p.sup } });
+    lista.push(montaArea(n, x, munMap, k));
   }
   lista.sort((a, b) => b.conv - a.conv);
   lista.forEach((r, i) => { r.n = i + 1; });
@@ -1196,12 +1219,16 @@ function fichaFmt(v, t) {
   if (t === "n") return v.toLocaleString("pt-BR");
   return v.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 }
-function fichaLinha(rot, val, fonte, serie, ctx) {
+// faixa da posição nacional (mesma régua da tabela de municípios do
+// mutirão): f1 = 10% com mais, f2 = 25% com mais, f0 = 10% com menos
+const fichaFaixa = rk => rk == null ? "" : rk >= 90 ? " f1" : rk >= 75 ? " f2" : rk <= 10 ? " f0" : "";
+function fichaLinha(rot, val, fonte, serie, ctx, rk) {
   const frag = document.createDocumentFragment();
   const d = document.createElement("div");
   d.className = "ficha-kv";
   const a = document.createElement("span"); a.textContent = rot;
   const b = document.createElement("b"); b.textContent = val;
+  b.className = fichaFaixa(rk).trim();
   d.append(a, b); frag.append(d);
   if (ctx) {   // medida por habitante + posição entre os municípios do país
     const c = document.createElement("div");
@@ -1238,9 +1265,27 @@ function fichaRank(nivel, campo, v) {
   let p = 0;
   while (p < cuts.length && cuts[p] < v) p++;
   const un = nivel === "dist" ? "distritos" : nivel === "setor" ? "setores" : "municípios";
-  if (p >= 99) return `entre o 1% dos ${un} com mais`;
-  if (p === 0) return `no mínimo entre os ${un}`;
-  return `mais que ${p}% dos ${un} do país`;
+  const txt = p >= 99 ? `entre o 1% dos ${un} com mais` : p === 0 ? `no mínimo entre os ${un}`
+    : `mais que ${p}% dos ${un} do país`;
+  return { txt, p };
+}
+// ordem dos temas nos destaques: programas sociais primeiro
+const FICHA_ORDEM = { "Renda e proteção social": 0, "Saúde": 1, "Educação": 2,
+  "Moradia, energia e cultura": 3, "Trabalho e economia": 4,
+  "Moradia e saneamento (Censo 2022)": 5, "Saneamento segundo o prestador (SINISA, ref. 2024)": 6,
+  "Quem mora aqui": 7 };
+// linhas que se destacam no país (10% com mais; se faltar, 25% com mais)
+function fichaDestaques(sec) {
+  const todas = [];
+  for (const s of sec || []) for (const l of s.l) {
+    const rk = l[5];
+    if (rk != null && rk >= 75 && !/^(População estimada|Domicílios ocupados)/.test(l[0]))
+      todas.push({ s: s.t, l, rk, o: FICHA_ORDEM[s.t] ?? 9 });
+  }
+  let top = todas.filter(x => x.rk >= 90);
+  if (top.length < 3) top = todas;
+  top.sort((a, b) => a.o - b.o || b.rk - a.rk);
+  return top.slice(0, 7);
 }
 // el: onde desenhar; nivel: "mun" | "dist" | "setor"; cd: código do nível
 async function fichaExtra(el, nivel, cd) {
@@ -1272,15 +1317,18 @@ async function fichaExtra(el, nivel, cd) {
       sec.append(p);
     } else {
       let n = 0;
+      const linhas = [];
       for (const [rot, i, t] of FICHA_CENSO) {
         const v = fichaFmt(arr[i], t);
         if (v == null) continue;
         n++;
         const m = d.mcenso ? fichaFmt(d.mcenso[i], t) : null;
-        const campo = (d.campos || [])[i];
-        sec.append(fichaLinha(rot, v, m != null ? `município: ${m}` : null, null,
-                              fichaRank(nivel, campo, arr[i])));
+        const r = fichaRank(nivel, (d.campos || [])[i], arr[i]);
+        linhas.push({ rk: r ? r.p : -1, f: fichaLinha(rot, v, m != null ? `município: ${m}` : null, null,
+                                                       r ? r.txt : null, r ? r.p : null) });
       }
+      linhas.sort((a, b) => b.rk - a.rk);
+      for (const x of linhas) sec.append(x.f);
       if (!n) sec.append(Object.assign(document.createElement("div"),
         { className: "ficha-fonte", textContent: "dados omitidos pelo IBGE (área pequena)" }));
     }
@@ -1290,9 +1338,24 @@ async function fichaExtra(el, nivel, cd) {
     cab.textContent = `Dados do município de ${nomeMun}`;
     box.append(cab);
   }
+  // 1) o que se destaca (resposta primeiro: para quem não tem tempo)
+  const dest = fichaDestaques(d.sec);
+  const secD = fichaSecao(nivel === "mun" ? "O que se destaca aqui" : `O que se destaca em ${nomeMun}`, dest.length, true);
+  if (!dest.length) {
+    const p = document.createElement("div"); p.className = "ficha-fonte";
+    p.textContent = "nenhum programa ou serviço entre os 25% mais altos do país, por habitante";
+    secD.append(p);
+  }
+  for (const x of dest) {
+    const [rot, val, fonte, serie, ctx] = x.l;
+    secD.append(fichaLinha(rot, val, null, null, ctx, x.rk));
+  }
+  box.append(secD);
+  // 2) tudo, por tema, recolhido; dentro de cada tema o que é mediano vai para baixo
   for (const s of d.sec || []) {
     const sec = fichaSecao(s.t, s.l.length, false);
-    for (const [rot, val, fonte, serie, ctx] of s.l) sec.append(fichaLinha(rot, val, fonte, serie, ctx));
+    const ls = s.l.slice().sort((a, b) => ((b[5] ?? -1) - (a[5] ?? -1)));
+    for (const [rot, val, fonte, serie, ctx, rk] of ls) sec.append(fichaLinha(rot, val, fonte, serie, ctx, rk));
     box.append(sec);
   }
   const nota = document.createElement("div");
@@ -1303,7 +1366,8 @@ async function fichaExtra(el, nivel, cd) {
     "Os programas são contados por município; o Censo chega ao distrito e ao setor. " +
     "A posição ('mais que X% dos municípios') compara a medida por habitante, por " +
     "domicílio ou o percentual com todos os municípios do país; nas seções de programas " +
-    "as linhas vêm ordenadas por essa posição.";
+    "as linhas vêm ordenadas por essa posição; azul = entre os 10% (escuro) ou 25% (claro) " +
+    "com mais do país; cinza = entre os 10% com menos.";
   box.append(nota);
 }
 
@@ -1317,7 +1381,8 @@ function cardRegiao(r) {
   const corpo = document.createElement("div");
   const rot = document.createElement("div");
   rot.className = "card-sec card-sec-1";
-  rot.textContent = `${UNID[unidade].um} nº ${r.n} do país`;
+  rot.textContent = r.n ? `${UNID[unidade].um} nº ${r.n} do país`
+    : `${UNID[unidade].um} fora do ranking desta visão`;
   corpo.append(rot);
   const t = document.createElement("div");
   t.className = "card-titulo";
@@ -1332,7 +1397,10 @@ function cardRegiao(r) {
   corpo.append(sub);
   const chave = document.createElement("div");
   chave.className = "card-conv";
-  chave.textContent = {
+  chave.textContent = !(r.conv > 0) ? {
+    voto: "Lula no esperado ou acima: nada a recuperar por aqui",
+    abst: "Sem votos perdidos para a abstenção nesta régua",
+    swing: "Lula não caiu em relação a 2022 aqui" }[visao] : {
     voto: `≈ ${fmtMil(r.conv)} votos de Lula abaixo do esperado`,
     abst: `≈ ${fmtMil(r.conv)} votos de Lula perdidos para a abstenção`,
     swing: `≈ ${fmtMil(r.conv)} votos de Lula perdidos em relação a 2022` }[visao];
@@ -1563,8 +1631,9 @@ mapa.on("click", e => {
     const U = UNID[unidade];
     const fa = mapa.queryRenderedFeatures(e.point,
       { layers: [U.camada + "-fill"] });
-    const r = fa.length &&
-      REG.regioes.find(x => x.cd === fa[0].properties[U.chave]);
+    const cdA = fa.length ? fa[0].properties[U.chave] : null;
+    const r = cdA && (REG.regioes.find(x => x.cd === cdA) ||
+                      areaAvulsa(unidade, cdA));
     if (r) { focaRegiao(r, null, { semVoo: true }); return; }
   }
   $r.style.display = "none";

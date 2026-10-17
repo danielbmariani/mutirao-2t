@@ -115,6 +115,39 @@ em votos e 0,61 em pontos. Em cerca de 1% dos municípios, pequenos, os
 setores do modelo de abstenção cobrem menos de 70% dos aptos oficiais e
 `abst_modelo_votos_lula` fica subestimado.
 
+## Carteira: quantos lugares para chegar a uma meta de votos
+
+`site/carteira.html` (no ar em <https://mutirao-2t.vercel.app/carteira>)
+responde à pergunta do grupo: "precisamos de V votos; quais são os N
+lugares mais promissores para chegar lá?". Escolhe-se a meta (atalho:
+2,25 mi, a diferença Flávio − Lula no 1º turno), a unidade (município ou
+distrito), a ordem, a UF, a população mínima e a confiança. A página
+ordena os lugares pelo potencial de votos de Lula a recuperar, soma até a
+meta e diz quantos lugares entram e quanto eleitorado isso cobre, com uma
+curva de votos acumulados e a lista para baixar em CSV.
+
+Cada lugar soma as duas medidas (convencer quem saiu + levar à urna quem
+faltou; quem faltou não está nos válidos) e tem uma faixa com duas réguas,
+que não se somam entre si:
+
+- **piso (modelos)**: déficit contra o esperado para o perfil do lugar +
+  abstenção acima da esperada vezes a fatia de Lula (só onde ele lidera);
+  os mesmos números do mapa (`site/dados/areas_*.json`);
+- **teto (2022)**: queda da fatia de Lula desde o 1º turno de 2022 em
+  votos de 2026 (só setores comparáveis) + eleitores a mais em casa que
+  no 2º turno de 2022 vezes a fatia de Lula (só onde ele lidera; para
+  município usa a abstenção oficial do TSE, a mesma da tabela
+  `/municipios`; para distrito, a dos setores).
+
+Confiança: **alta** quando modelo e 2022 concordam em uma das medidas,
+ao menos 90% dos votos do lugar estão em setores comparáveis entre as
+duas eleições e há ao menos 5 mil eleitores; **baixa** quando só uma das
+réguas aponta, ou há menos de 5 mil eleitores, ou menos de 70% dos votos
+são comparáveis; **média** no resto. Catálogos em
+`site/dados/carteira_mun.json` e `carteira_dist.json` (script
+`regioes/carteira_121.py`, que confere os totais contra `areas_*.json`);
+bateria de 13 verificações em `site/bateria_carteira.cjs`.
+
 ## Hospedar a sua versão
 
 O site é 100% estático. Três passos:
@@ -139,14 +172,18 @@ https://sua-url/`.
 ## Estrutura
 
 ```
-site/            o site pronto (index.html + municipios.html + dados pré-computados)
+site/            o site pronto (index.html + municipios.html + carteira.html
+                 + dados pré-computados)
   dados/         regioes*.json/geojson (3 visões × 3 cortes),
                  areas_mun.json / areas_dist.json (catálogos por unidade),
                  municipios.json (busca), regioes*.geojson (contornos)
+                 carteira_mun.json / carteira_dist.json (carteira: piso e teto
+                 por lugar), mun/{cd}.json (ficha com dados oficiais por município)
 modelos/         modelo_lula_72.py (voto), modelo_abst_75.py (abstenção),
                  swing_lula_93.py (queda 2022→2026, sem modelo)
 regioes/         geradores de regiões das três visões + areas_95.py
-                 (catálogos por município e distrito)
+                 (catálogos por município e distrito),
+                 ranking_municipios_110.py (tabela) e carteira_121.py (carteira)
 tiles/           gerador do tileset + uploader Mapbox
 dados_modelo/    SAÍDAS dos modelos por setor censitário (parquet):
                  permitem regenerar regiões e tiles sem o pipeline TSE;

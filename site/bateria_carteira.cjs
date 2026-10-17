@@ -1,0 +1,38 @@
+const puppeteer = require("puppeteer-core");
+const URL = process.argv[2] || "http://localhost:8772/carteira.html";
+const falhas = []; const ok = (c, n) => { console.log((c ? "PASS " : "FAIL ") + n); if (!c) falhas.push(n); };
+(async () => {
+  const b = await puppeteer.launch({ executablePath: "/usr/bin/google-chrome", headless: "new", args: ["--no-sandbox", "--window-size=1400,1000"] });
+  const p = await b.newPage(); await p.setViewport({ width: 1400, height: 1000 });
+  const erros = []; p.on("pageerror", e => erros.push(e.message));
+  await p.goto(URL, { waitUntil: "networkidle2", timeout: 60000 }); await new Promise(r => setTimeout(r, 1500));
+  ok(erros.length === 0, "sem erros de JS: " + erros.join(" | "));
+  const txt = await p.evaluate(() => document.getElementById("resumo").textContent);
+  ok(/não chega/.test(txt), "meta 2,25 mi: piso não chega");
+  ok(/municípios/.test(txt), "meta 2,25 mi: teto chega em N municípios");
+  const n1 = await p.evaluate(() => document.querySelectorAll("#corpo tr").length);
+  ok(n1 === 100, "tabela mostra 100 linhas: " + n1);
+  ok(await p.evaluate(() => document.querySelector("#corpo tr .nm").textContent) === "Goiânia", "Goiânia no topo pelo piso");
+  ok(await p.evaluate(() => document.querySelectorAll("#svg path").length === 2), "gráfico com duas curvas");
+  await p.evaluate(() => { document.querySelector('.presets button[data-v="500000"]').click(); }); await new Promise(r => setTimeout(r, 600));
+  const t2 = await p.evaluate(() => document.getElementById("resumo").textContent);
+  ok(!/não chega/.test(t2), "meta 500 mil: piso chega");
+  const nP = await p.evaluate(() => +document.querySelector("#resumo .cen .n").textContent.replace(/\D/g, ""));
+  ok(nP > 100 && nP < 3000, "N pelo piso plausível: " + nP);
+  await p.select("#unid", "dist"); await new Promise(r => setTimeout(r, 1500));
+  ok(/distritos/.test(await p.evaluate(() => document.getElementById("resumo").textContent)), "distrito: resumo fala em distritos");
+  ok(await p.evaluate(() => location.hash.includes("u=dist") && location.hash.includes("v=500000")), "hash guarda estado");
+  await p.select("#uf", "GO"); await new Promise(r => setTimeout(r, 800));
+  ok(/não chega/.test(await p.evaluate(() => document.getElementById("resumo").textContent)), "GO sozinho não chega a 500 mil");
+  await p.select("#ordem", "dens"); await new Promise(r => setTimeout(r, 800));
+  const dens = await p.evaluate(() => [...document.querySelectorAll("#corpo tr td:nth-child(5)")].slice(0, 5).map(t => +t.textContent.replace(",", ".")));
+  ok(dens.every((v, i) => i === 0 || v <= dens[i - 1]), "ordem por densidade decrescente: " + dens.join(","));
+  await p.select("#unid", "mun"); await p.select("#uf", ""); await p.select("#ordem", "cons"); await p.evaluate(() => { document.querySelector(".presets button[data-v=\"2250000\"]").click(); }); await new Promise(r => setTimeout(r, 1200));
+  await p.screenshot({ path: process.argv[3] || "/tmp/carteira.png", fullPage: false });
+  // mobile
+  await p.setViewport({ width: 390, height: 844 }); await new Promise(r => setTimeout(r, 500));
+  const sw = await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  ok(sw, "mobile: sem rolagem horizontal da página");
+  await p.screenshot({ path: (process.argv[3] || "/tmp/carteira.png").replace(".png", "_m.png"), fullPage: false });
+  console.log(falhas.length ? `FALHAS ${falhas.length}` : "TUDO OK"); await b.close();
+})();

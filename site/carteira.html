@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Carteira do mutirão: quantos lugares para chegar à meta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Defina quantos votos o mutirão precisa e veja quantos municípios ou distritos, em ordem de potencial, somam essa meta, com faixa de incerteza e grau de confiança de cada lugar.">
+<link rel="canonical" href="https://mutirao-2t.vercel.app/carteira">
+<style>
+  :root { --acento: #8F1D21; --link: #27568B; --txt: #121212; --sub: #666;
+          --fundo: #f6f4ef; --linha: #e3e0d8; --voto: #8F1D21; --abst: #27568B; --c22: #b8b2a4; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--fundo); color: var(--txt);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 16px 60px; }
+  h1 { font-size: 22px; letter-spacing: -0.01em; margin: 0 0 6px; line-height: 1.2; }
+  .sub { color: var(--sub); font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; max-width: 820px; }
+  a { color: var(--link); }
+  .volta { font-size: 13px; margin-bottom: 14px; display: inline-block; }
+  .controles { display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: flex-end; margin: 0 0 14px;
+    background: #fff; border: 1px solid var(--linha); border-radius: 10px; padding: 12px 14px; }
+  .controles label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: #444; font-weight: 600; }
+  .controles input, .controles select { font: inherit; font-size: 14px; padding: 7px 10px; font-weight: 400;
+    border: 1.5px solid #c9c9c9; border-radius: 8px; background: #fff; color: var(--txt); max-width: 100%; }
+  .controles input:focus, .controles select:focus { outline: none; border-color: #121212; }
+  .controles input[type=number] { width: 150px; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--sub); }
+  .presets button { font: inherit; font-size: 12px; color: var(--link); background: none; border: 1px solid #cfd6df;
+    border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+  .presets button:hover { border-color: var(--link); }
+  .resumo { background: #fff; border: 1px solid var(--linha); border-radius: 10px; padding: 14px 16px; margin: 0 0 14px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+  .resumo .cen { font-size: 13.5px; line-height: 1.5; }
+  .resumo .cen .n { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; display: block;
+    font-variant-numeric: tabular-nums; }
+  .resumo .cen .t { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--sub); display: block; margin-bottom: 4px; }
+  .resumo .cen .d { color: #444; font-size: 12.5px; display: block; }
+  .grafico { background: #fff; border: 1px solid var(--linha); border-radius: 10px; padding: 12px 14px 6px; margin: 0 0 14px; position: relative; }
+  .grafico h2 { font-size: 14px; margin: 0 0 2px; }
+  .grafico .leg { font-size: 12px; color: #444; margin: 0 0 6px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .grafico .leg i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 5px; }
+  .grafico svg { width: 100%; height: 300px; display: block; }
+  .grafico .tip { position: absolute; pointer-events: none; background: #121212; color: #fff; font-size: 12px; line-height: 1.4;
+    padding: 6px 9px; border-radius: 6px; display: none; max-width: 260px; }
+  .tabela-wrap { overflow-x: auto; background: #fff; border-radius: 10px; border: 1px solid var(--linha); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 980px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--linha); text-align: left; vertical-align: top;
+           line-height: 1.4; font-variant-numeric: tabular-nums; }
+  th { position: sticky; top: 0; background: #faf9f6; font-size: 11.5px; color: #444; font-weight: 600; line-height: 1.2; vertical-align: bottom; }
+  td:nth-child(1) { color: var(--sub); width: 34px; padding-right: 0; }
+  td .nm { font-weight: 700; font-size: 14px; }
+  td .meta { color: var(--sub); font-size: 11.5px; display: block; margin-top: 2px; }
+  td .lk { font-size: 11px; margin-right: 8px; }
+  td .pot { font-weight: 700; color: var(--txt); display: block; }
+  td .faixa { color: var(--sub); font-size: 11.5px; display: block; }
+  td .barra { display: flex; height: 7px; border-radius: 3px; overflow: hidden; background: #efede7; margin-top: 5px; max-width: 160px; }
+  td .barra i { display: block; height: 100%; }
+  td .barra .bv { background: var(--voto); } td .barra .ba { background: var(--abst); }
+  td .comp { font-size: 11.5px; color: #444; display: block; margin-top: 3px; }
+  td .comp b { font-weight: 600; }
+  td .cf { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+  td .cf2 { background: #e6f1e8; color: #1f5a2c; } td .cf1 { background: #f5efe0; color: #5c4a14; } td .cf0 { background: #efefef; color: #444; }
+  td .mot { color: #444; font-size: 11.5px; display: block; margin-top: 3px; }
+  td .ac { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+  .a-conv .ac { background: #f6e3e4; color: #6e1216; } .a-urna .ac { background: #e3ecf6; color: #1b3f69; }
+  .a-ambos .ac { background: #efe3f0; color: #5a1f5e; } .a-22 .ac { background: #efefef; color: #444; }
+  td .acum { color: var(--sub); font-size: 11.5px; display: block; }
+  .acoes { display: flex; gap: 12px; align-items: center; font-size: 12.5px; color: var(--sub); margin: 0 0 8px; flex-wrap: wrap; }
+  .acoes b { color: var(--txt); }
+  .acoes button, .mais { font: inherit; font-size: 12.5px; color: var(--link); background: none; border: 0; padding: 0;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .mais { display: block; margin: 10px auto 0; font-size: 13px; font-weight: 600; color: var(--acento); text-decoration: none; }
+  .nota { font-size: 12px; color: #444; line-height: 1.5; max-width: 820px; margin-top: 18px; }
+  .nota h2 { font-size: 14px; margin: 18px 0 6px; }
+  @media (max-width: 720px) {
+    .resumo { grid-template-columns: 1fr; }
+    .resumo .cen .n { font-size: 26px; }
+    .grafico svg { height: 240px; }
+  }
+</style>
+</head>
+<body>
+<main>
+<a class="volta" href="./">← Mapa do mutirão</a>
+<h1>Carteira do mutirão: quantos lugares para chegar à meta</h1>
+<p class="sub">Escolha quantos votos o mutirão precisa. A página ordena os lugares pelo potencial de votos de Lula a recuperar
+(convencer quem saiu + levar à urna quem faltou), soma até a meta e diz quantos lugares entram, quanto eleitorado isso
+cobre e qual a confiança de cada um. Cada lugar tem uma faixa: o piso vem dos modelos do mutirão; o teto, da comparação
+com 2022.</p>
+
+<div class="controles">
+  <label>Meta de votos
+    <input type="number" id="meta" min="10000" step="10000" value="2250000">
+  </label>
+  <div class="presets">atalhos:
+    <button type="button" data-v="2250000">2,25 mi (diferença do 1º turno)</button>
+    <button type="button" data-v="1000000">1 mi</button>
+    <button type="button" data-v="500000">500 mil</button>
+  </div>
+  <label>Unidade
+    <select id="unid"><option value="mun">Município</option><option value="dist">Distrito</option></select>
+  </label>
+  <label>Ordenar por
+    <select id="ordem">
+      <option value="cons">potencial pelo piso (modelos)</option>
+      <option value="c22">potencial pelo teto (2022)</option>
+      <option value="dens">votos por mil eleitores (piso)</option>
+    </select>
+  </label>
+  <label>UF
+    <select id="uf"><option value="">Brasil</option></select>
+  </label>
+  <label>População mínima
+    <select id="pop">
+      <option value="0">qualquer</option><option value="20000">20 mil</option>
+      <option value="50000">50 mil</option><option value="100000">100 mil</option><option value="500000">500 mil</option>
+    </select>
+  </label>
+  <label>Confiança
+    <select id="cf"><option value="0">qualquer</option><option value="1">média ou alta</option><option value="2">só alta</option></select>
+  </label>
+</div>
+
+<div class="resumo" id="resumo"></div>
+
+<div class="grafico">
+  <h2>Votos acumulados conforme os lugares entram, na ordem escolhida</h2>
+  <div class="leg"><span><i style="border-color:var(--acento)"></i>piso (modelos)</span>
+    <span><i style="border-color:var(--c22)"></i>teto (2022)</span>
+    <span><i style="border-color:#121212;border-top-style:dashed"></i>meta</span></div>
+  <svg id="svg" aria-label="Curva de votos acumulados"></svg>
+  <div class="tip" id="tip"></div>
+</div>
+
+<div class="acoes"><span id="acoes-txt"></span><button type="button" id="csv">baixar a seleção (CSV)</button></div>
+<div class="tabela-wrap">
+<table>
+  <thead><tr><th>#</th><th>Lugar</th><th>Potencial<br>piso e teto</th><th>De que é feito (piso)</th>
+    <th>Votos por mil<br>eleitores</th><th>Confiança</th><th>O que fazer</th><th>Acumulado<br>(piso · teto)</th></tr></thead>
+  <tbody id="corpo"></tbody>
+</table>
+</div>
+<button type="button" class="mais" id="mais" style="display:none">mostrar mais</button>
+
+<div class="nota">
+  <h2>Como ler</h2>
+  <p><b>A pergunta.</b> O mutirão precisa de um certo número de votos. Em cada lugar há duas coisas a fazer: convencer quem
+  deixou de votar em Lula e levar à urna quem faltou. A página soma as duas, ordena os lugares do maior potencial para o
+  menor e vai acumulando até a meta. O número de lugares que entra é a resposta.</p>
+  <p><b>Piso e teto.</b> Cada medida tem duas réguas. O <b>piso</b> vem dos modelos do mutirão: quantos votos Lula ficou abaixo
+  do esperado para o perfil do lugar, e quantos votos ele perdeu com a abstenção acima da esperada (só onde ele lidera,
+  porque mobilização geral onde ele perde devolve mais voto ao adversário). O <b>teto</b> vem da comparação direta com
+  2022: a queda da fatia de Lula desde o 1º turno de 2022 em votos de 2026, e os eleitores a mais em casa em relação ao
+  2º turno de 2022 vezes a fatia de Lula. As duas réguas não se somam: são os dois extremos da faixa. O piso é o que
+  destoa do padrão nesta eleição; o teto inclui também a maré nacional.</p>
+  <p><b>Confiança.</b> <b>Alta</b>: as duas réguas apontam na mesma direção (o modelo e 2022 concordam no voto ou na abstenção),
+  ao menos 90% dos votos do lugar estão em setores comparáveis entre as duas eleições e há ao menos 5 mil eleitores.
+  <b>Baixa</b>: só uma das réguas aponta potencial, ou o lugar tem menos de 5 mil eleitores, ou menos de 70% dos votos
+  são comparáveis com 2022 (locais de votação reatribuídos). <b>Média</b>: o resto. Em lugares pequenos a estimativa por
+  setor tem erro maior; use o distrito ou o município, não o setor.</p>
+  <p><b>O que fazer.</b> Pelo piso: <b>Convencer quem saiu</b> quando o déficit contra o esperado é a parcela maior;
+  <b>Levar à urna</b> quando a abstenção excedente é a maior; <b>Convencer e levar à urna</b> quando as duas pesam.
+  <b>Só pela régua de 2022</b>: o lugar está dentro do esperado para o perfil, mas caiu desde 2022; é a maré, não um
+  problema local.</p>
+  <p><b>Esforço.</b> A coluna de votos por mil eleitores e o eleitorado coberto no resumo são a medida de esforço: a mesma
+  meta pode exigir cobrir muito mais gente se a ordem for pelo potencial total. Ordenar por votos por mil eleitores
+  privilegia lugares densos em potencial, geralmente menores.</p>
+  <p><b>Fontes e limites.</b> TSE (1º turno de 2026, 1º e 2º turnos de 2022, por seção), atribuídos aos setores censitários
+  pelo método conservativo do projeto e somados por município ou distrito; modelos de voto e abstenção do mutirão
+  (ver a metodologia no mapa). O potencial é um teto aritmético, não uma previsão de entrega: nenhum mutirão recupera
+  100% do que falta. Para município, a régua de 2022 da abstenção usa a abstenção oficial do TSE; para distrito, a soma
+  dos setores. Os dados desta página estão em <code>dados/carteira_mun.json</code> e <code>dados/carteira_dist.json</code>.</p>
+</div>
+</main>
+<script>
+"use strict";
+// Dados próprios, pré-computados; a página monta tudo com DOM (textContent), sem HTML de fora.
+const fmtMil = v => v == null ? "" :
+  Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + " mi" :
+  Math.abs(v) >= 1e4 ? Math.round(v / 1e3).toLocaleString("pt-BR") + " mil" :
+  Math.round(v).toLocaleString("pt-BR");
+const fmtInt = v => v == null ? "" : Math.round(v).toLocaleString("pt-BR");
+const fmt1 = v => v == null ? "" : v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt; return e; };
+const UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
+const CF_NOME = ["baixa", "média", "alta"];
+const PASSO = 100;
+const cache = {};
+let unidade = "mun", meta = 2250000, ordem = "cons", uf = "", popMin = 0, cfMin = 0;
+let sel = [], mostrados = PASSO, munNome = {};
+
+function leHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("v") && isFinite(+h.get("v")) && +h.get("v") > 0) meta = Math.round(+h.get("v"));
+  if (h.get("u") === "dist") unidade = "dist";
+  if (["c22", "dens"].includes(h.get("o"))) ordem = h.get("o");
+  if (UFS.includes(h.get("uf"))) uf = h.get("uf");
+  if (h.get("pop") && isFinite(+h.get("pop"))) popMin = +h.get("pop");
+  if (["1", "2"].includes(h.get("cf"))) cfMin = +h.get("cf");
+}
+function gravaHash() {
+  const p = [`v=${meta}`];
+  if (unidade !== "mun") p.push("u=dist");
+  if (ordem !== "cons") p.push(`o=${ordem}`);
+  if (uf) p.push(`uf=${uf}`);
+  if (popMin) p.push(`pop=${popMin}`);
+  if (cfMin) p.push(`cf=${cfMin}`);
+  history.replaceState(null, "", "#" + p.join("&"));
+}
+
+async function dados(n) {
+  if (!cache[n]) cache[n] = (await (await fetch(`dados/carteira_${n}.json`)).json());
+  return cache[n];
+}
+
+const piso = x => x.vm + x.am, teto = x => x.v22 + x.a22;
+const dens = x => x.ap > 0 ? 1000 * piso(x) / x.ap : 0;
+const chave = { cons: piso, c22: teto, dens };
+
+function acao(x) {
+  if (piso(x) <= 0) return teto(x) > 0 ? ["Só pela régua de 2022", "a-22"] : ["", ""];
+  const fv = x.vm / piso(x);
+  if (fv >= 0.7) return ["Convencer quem saiu", "a-conv"];
+  if (fv <= 0.3) return ["Levar à urna", "a-urna"];
+  return ["Convencer e levar à urna", "a-ambos"];
+}
+function motivo(x) {
+  const cv = x.vm > 0 && x.v22 > 0, ca = x.am > 0 && x.a22 > 0;
+  const m = [];
+  if (cv && ca) m.push("modelo e 2022 concordam no voto e na abstenção");
+  else if (cv) m.push("modelo e 2022 concordam no voto");
+  else if (ca) m.push("modelo e 2022 concordam na abstenção");
+  else if (piso(x) > 0 && teto(x) > 0) m.push("réguas apontam medidas diferentes");
+  else if (piso(x) > 0) m.push("só o modelo aponta potencial");
+  else if (teto(x) > 0) m.push("só a régua de 2022 aponta potencial");
+  if (x.ap < 5000) m.push("menos de 5 mil eleitores");
+  if (x.cob < 90) m.push(`${x.cob}% dos votos comparáveis com 2022`);
+  return m.join("; ");
+}
+
+async function calcula() {
+  const D = await dados(unidade);
+  const f = chave[ordem];
+  let L = D.areas.filter(x => (!uf || (x.uf || munNome[x.m + ":uf"]) === uf) && x.pop >= popMin && x.cf >= cfMin && f(x) > 0);
+  L.sort((a, b) => f(b) - f(a) || piso(b) - piso(a));
+  let cp = 0, ct = 0, ca = 0;
+  sel = L.map((x, i) => { cp += piso(x); ct += teto(x); ca += x.ap;
+    return { x, i: i + 1, cp, ct, ca }; });
+  const nP = sel.findIndex(r => r.cp >= meta), nT = sel.findIndex(r => r.ct >= meta);
+  const totP = sel.length ? sel[sel.length - 1].cp : 0, totT = sel.length ? sel[sel.length - 1].ct : 0;
+  const aptosBR = D.areas.reduce((s, x) => s + x.ap, 0);
+  resumo(nP, nT, totP, totT, aptosBR);
+  grafico(nP, nT);
+  mostrados = PASSO;
+  tabela(nP, nT);
+  gravaHash();
+}
+
+function cenario(titulo, n, tot, aptosBR) {
+  const c = el("div", "cen");
+  c.appendChild(el("span", "t", titulo));
+  if (n >= 0) {
+    const r = sel[n];
+    c.appendChild(el("span", "n", `${fmtInt(n + 1)} ${unidade === "mun" ? (n ? "municípios" : "município") : (n ? "distritos" : "distrito")}`));
+    c.appendChild(el("span", "d", `somam ${fmtMil(titulo.startsWith("Piso") ? r.cp : r.ct)} votos · cobrem ${fmtMil(r.ca)} eleitores (${fmt1(100 * r.ca / aptosBR)}% do eleitorado${uf ? " do país" : ""})`));
+  } else {
+    c.appendChild(el("span", "n", "não chega"));
+    c.appendChild(el("span", "d", `o máximo com os filtros atuais é ${fmtMil(tot)} votos em ${fmtInt(sel.length)} lugares`));
+  }
+  return c;
+}
+function resumo(nP, nT, totP, totT, aptosBR) {
+  const R = $("resumo"); R.replaceChildren();
+  R.appendChild(cenario("Piso (modelos): lugares para a meta", nP, totP, aptosBR));
+  R.appendChild(cenario("Teto (2022): lugares para a meta", nT, totT, aptosBR));
+}
+
+function grafico(nP, nT) {
+  const svg = $("svg"); svg.replaceChildren();
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  if (!sel.length) return;
+  const nMax = Math.min(sel.length, Math.max(50, (nP >= 0 ? nP + 1 : 0) * 1.25, (nT >= 0 ? nT + 1 : 0) * 1.25, 1) | 0);
+  const W = Math.max(320, Math.round(svg.getBoundingClientRect().width || 1000)), H = W < 600 ? 240 : 300;
+  const mL = W < 600 ? 56 : 70, mR = 16, mT = 10, mB = 38;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const bruto = Math.max(meta * 1.1, sel[nMax - 1].ct);
+  const pot = Math.pow(10, Math.floor(Math.log10(bruto)));
+  const yMax = Math.ceil(bruto / (pot / 4)) * (pot / 4);
+  const X = i => mL + (W - mL - mR) * (i / nMax);
+  const Y = v => mT + (H - mT - mB) * (1 - v / yMax);
+  // grade
+  const ticks = 4;
+  for (let k = 0; k <= ticks; k++) {
+    const v = yMax * k / ticks;
+    svg.appendChild(mk("line", { x1: mL, x2: W - mR, y1: Y(v), y2: Y(v), stroke: "#e8e5dd", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }));
+    const t = mk("text", { x: mL - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 12, fill: "#666" }); t.textContent = fmtMil(v); svg.appendChild(t);
+  }
+  for (let k = 0; k <= 5; k++) {
+    const i = Math.round(nMax * k / 5);
+    const t = mk("text", { x: X(i), y: H - 20, "text-anchor": "middle", "font-size": 12, fill: "#666" }); t.textContent = fmtInt(i); svg.appendChild(t);
+  }
+  const tx = mk("text", { x: (mL + W - mR) / 2, y: H - 4, "text-anchor": "middle", "font-size": 11, fill: "#888" });
+  tx.textContent = unidade === "mun" ? "municípios, na ordem escolhida" : "distritos, na ordem escolhida"; svg.appendChild(tx);
+  // linhas
+  const path = (f, cor, w, dash) => {
+    let d = `M${X(0)},${Y(0)}`;
+    for (let i = 0; i < nMax; i++) d += `L${X(i + 1)},${Y(f(sel[i]))}`;
+    svg.appendChild(mk("path", { d, fill: "none", stroke: cor, "stroke-width": w, "vector-effect": "non-scaling-stroke",
+      "stroke-dasharray": dash || "none", "stroke-linejoin": "round" }));
+  };
+  path(r => r.ct, "#b8b2a4", 2.5);
+  path(r => r.cp, "#8F1D21", 2.5);
+  svg.appendChild(mk("line", { x1: mL, x2: W - mR, y1: Y(meta), y2: Y(meta), stroke: "#121212", "stroke-width": 1.2,
+    "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke" }));
+  const marca = (n, cor) => {
+    if (n < 0 || n + 1 > nMax) return;
+    svg.appendChild(mk("line", { x1: X(n + 1), x2: X(n + 1), y1: Y(0), y2: Y(meta), stroke: cor, "stroke-width": 1, "stroke-dasharray": "2 3", "vector-effect": "non-scaling-stroke" }));
+    const t = mk("text", { x: X(n + 1), y: Y(meta) - 6, "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: cor }); t.textContent = fmtInt(n + 1); svg.appendChild(t);
+  };
+  marca(nT, "#8a8372"); marca(nP, "#8F1D21");
+  // hover
+  const cur = mk("line", { x1: 0, x2: 0, y1: mT, y2: H - mB, stroke: "#121212", "stroke-width": 1, "vector-effect": "non-scaling-stroke", visibility: "hidden" });
+  svg.appendChild(cur);
+  const tip = $("tip");
+  svg.addEventListener("mousemove", ev => {
+    const box = svg.getBoundingClientRect();
+    const px = (ev.clientX - box.left) / box.width * W;
+    const i = Math.max(1, Math.min(nMax, Math.round((px - mL) / (W - mL - mR) * nMax)));
+    const r = sel[i - 1];
+    cur.setAttribute("x1", X(i)); cur.setAttribute("x2", X(i)); cur.setAttribute("visibility", "visible");
+    tip.replaceChildren();
+    tip.appendChild(el("b", null, `${fmtInt(i)}º: ${r.x.nm}${r.x.uf ? " (" + r.x.uf + ")" : ""}`));
+    tip.appendChild(el("div", null, `acumulado piso ${fmtMil(r.cp)} · teto ${fmtMil(r.ct)}`));
+    tip.appendChild(el("div", null, `eleitores cobertos ${fmtMil(r.ca)}`));
+    tip.style.display = "block";
+    const left = ev.clientX - box.left + 14, top = ev.clientY - box.top + 14;
+    tip.style.left = Math.min(left, box.width - 270) + "px"; tip.style.top = top + "px";
+  });
+  svg.addEventListener("mouseleave", () => { cur.setAttribute("visibility", "hidden"); tip.style.display = "none"; });
+}
+
+function linha(r) {
+  const x = r.x, tr = el("tr");
+  tr.appendChild(el("td", null, r.i));
+  const tdL = el("td"); tdL.appendChild(el("span", "nm", x.nm));
+  const meta_ = el("span", "meta", unidade === "mun" ? `${x.uf} · ${fmtMil(x.ap)} eleitores · pop. ${fmtMil(x.pop)}`
+    : `${munNome[x.m] || ""} · ${fmtMil(x.ap)} eleitores`);
+  tdL.appendChild(meta_);
+  const links = el("span", "meta");
+  const a1 = el("a", "lk", "ver no mapa"); a1.href = `./#${unidade === "dist" ? "u=dist&" : ""}p=${x.ll[0]},${x.ll[1]},${unidade === "mun" ? 10.5 : 12}`; a1.target = "_blank"; a1.rel = "noopener";
+  links.appendChild(a1);
+  if (unidade === "mun") { const a2 = el("a", "lk", "ficha da cidade"); a2.href = `municipios#q=${encodeURIComponent(x.nm)}`; links.appendChild(a2); }
+  tdL.appendChild(links); tr.appendChild(tdL);
+  const tdP = el("td"); tdP.appendChild(el("span", "pot", fmtMil(piso(x))));
+  tdP.appendChild(el("span", "faixa", `até ${fmtMil(teto(x))} pela régua de 2022`)); tr.appendChild(tdP);
+  const tdC = el("td"); const p = piso(x);
+  if (p > 0) {
+    const b = el("div", "barra"); const iv = el("i", "bv"), ia = el("i", "ba");
+    iv.style.width = (100 * x.vm / p) + "%"; ia.style.width = (100 * x.am / p) + "%"; b.appendChild(iv); b.appendChild(ia); tdC.appendChild(b);
+    const c = el("span", "comp"); c.appendChild(el("b", null, "convencer ")); c.appendChild(document.createTextNode(fmtMil(x.vm) + " · "));
+    c.appendChild(el("b", null, "levar à urna ")); c.appendChild(document.createTextNode(fmtMil(x.am))); tdC.appendChild(c);
+    tdC.appendChild(el("span", "comp", `Lula ${fmt1(x.pl)}% · esperado ${fmt1(x.esp)}% · 2022: ${fmt1(x.l22)}%` +
+      (x.lid ? ` · abstenção ${fmt1(x.abr)}% (esperada ${fmt1(x.abe)}%)` : " · Flávio lidera: abstenção não conta")));
+  } else tdC.appendChild(el("span", "comp", "dentro do esperado para o perfil"));
+  tr.appendChild(tdC);
+  tr.appendChild(el("td", null, p > 0 ? fmt1(dens(x)) : "–"));
+  const tdF = el("td"); tdF.appendChild(el("span", `cf cf${x.cf}`, CF_NOME[x.cf])); tdF.appendChild(el("span", "mot", motivo(x))); tr.appendChild(tdF);
+  const [ac, cls] = acao(x); const tdA = el("td", cls); if (ac) tdA.appendChild(el("span", "ac", ac)); tr.appendChild(tdA);
+  const tdS = el("td"); tdS.appendChild(el("span", "pot", fmtMil(r.cp))); tdS.appendChild(el("span", "acum", `teto ${fmtMil(r.ct)} · ${fmtMil(r.ca)} eleitores`)); tr.appendChild(tdS);
+  return tr;
+}
+function tabela(nP, nT) {
+  const nLista = Math.max(nP >= 0 ? nP + 1 : 0, nT >= 0 ? nT + 1 : 0) || sel.length;
+  const corpo = $("corpo"); corpo.replaceChildren();
+  const lim = Math.min(nLista, mostrados);
+  for (let i = 0; i < lim; i++) corpo.appendChild(linha(sel[i]));
+  $("mais").style.display = lim < nLista ? "block" : "none";
+  $("mais").onclick = () => { mostrados += PASSO; tabela(nP, nT); };
+  const t = $("acoes-txt"); t.replaceChildren();
+  t.appendChild(document.createTextNode("Lista: "));
+  t.appendChild(el("b", null, `${fmtInt(nLista)} lugares`));
+  t.appendChild(document.createTextNode(nP >= 0 ? ` (até a meta pela régua que chega mais longe; a linha ${fmtInt(nP + 1)} fecha a meta pelo piso)` :
+    " (todos com potencial, na ordem escolhida; o piso não fecha a meta)"));
+  $("csv").onclick = () => {
+    const cab = ["posicao", "cd", "nome", "uf", "municipio", "eleitores", "populacao", "piso_votos", "teto_votos",
+      "convencer_modelo", "levar_urna_modelo", "queda_2022_votos", "abst_2022_votos", "votos_por_mil", "confianca", "o_que_fazer",
+      "acumulado_piso", "acumulado_teto", "acumulado_eleitores"];
+    const esc = v => { const s = v == null ? "" : String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const rows = [cab.join(";")];
+    for (let i = 0; i < nLista; i++) { const r = sel[i], x = r.x;
+      rows.push([r.i, x.cd, x.nm, x.uf || munNome[x.m + ":uf"] || "", x.uf ? x.nm : (munNome[x.m] || ""), x.ap, x.pop, piso(x), teto(x),
+        x.vm, x.am, x.v22, x.a22, dens(x).toFixed(1), CF_NOME[x.cf], acao(x)[0], r.cp, r.ct, r.ca].map(esc).join(";")); }
+    const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `carteira_${unidade}_${meta}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  };
+}
+
+async function inicia() {
+  leHash();
+  const s = $("uf"); UFS.forEach(u => s.appendChild(new Option(u, u)));
+  $("meta").value = meta; $("unid").value = unidade; $("ordem").value = ordem; $("uf").value = uf; $("pop").value = String(popMin); $("cf").value = String(cfMin);
+  const M = await dados("mun");
+  M.areas.forEach(x => { munNome[x.cd] = x.nm; munNome[x.cd + ":uf"] = x.uf; });
+  $("meta").addEventListener("change", () => { const v = +$("meta").value; if (v > 0) { meta = Math.round(v); calcula(); } });
+  document.querySelectorAll(".presets button").forEach(b => b.addEventListener("click", () => { meta = +b.dataset.v; $("meta").value = meta; calcula(); }));
+  $("unid").addEventListener("change", () => { unidade = $("unid").value; calcula(); });
+  $("ordem").addEventListener("change", () => { ordem = $("ordem").value; calcula(); });
+  $("uf").addEventListener("change", () => { uf = $("uf").value; calcula(); });
+  $("pop").addEventListener("change", () => { popMin = +$("pop").value; calcula(); });
+  $("cf").addEventListener("change", () => { cfMin = +$("cf").value; calcula(); });
+  await calcula();
+  let rt = null;
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => calcula(), 250); });
+}
+inicia();
+</script>
+</body>
+</html>

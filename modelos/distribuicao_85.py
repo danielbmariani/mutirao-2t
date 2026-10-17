@@ -108,6 +108,13 @@ def eleitorado_paths(ano):
     return ps
 
 
+def cargo_majoritario(ano):
+    """Comparecimento do LV = votos do cargo que todo eleitor vota:
+    presidente nos anos gerais, prefeito nos municipais (2024 entrou
+    em 14/10/2026 p/ os aliados municipais do site)."""
+    return "PREFEITO" if ano % 4 == 0 else "PRESIDENTE"
+
+
 def uid_sql(ano):
     return (f"'{ano}_' || CAST(CAST(CD_MUNICIPIO AS INT) AS VARCHAR) || '_' "
             f"|| CAST(CAST(NR_ZONA AS INT) AS VARCHAR) || '_' || "
@@ -127,7 +134,7 @@ def lvs_eleicao(con, ano, turno) -> pd.DataFrame:
         FROM read_csv({vs}, delim=';', header=true, encoding='latin-1',
                       all_varchar=true, union_by_name=true)
         WHERE NR_TURNO = '{turno}' AND SG_UF <> 'ZZ'
-              AND upper(DS_CARGO) = 'PRESIDENTE'
+              AND upper(DS_CARGO) = '{cargo_majoritario(ano)}'
         GROUP BY 1),
       aptos AS (
         SELECT {uid_sql(ano)} AS lv_uid,
